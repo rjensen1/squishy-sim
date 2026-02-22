@@ -164,6 +164,10 @@ public class SimulationService
 
             try
             {
+                // PROTOTYPE: .GetResult() holds _lock for the full LLM HTTP call duration.
+                // With rule-based this is fine. With Ollama, REST endpoints will block
+                // while the lock is held — web UI freezes during each tick.
+                // Before enabling Ollama properly: release lock, await async, re-acquire.
                 var (action, reason) = agent.DecisionMaker
                     .ChooseAsync(agent.Drives, ActionCatalog.All)
                     .GetAwaiter().GetResult();
