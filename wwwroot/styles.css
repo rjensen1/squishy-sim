@@ -1,0 +1,67 @@
+/* PROTOTYPE: SquishySim styles */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
+
+#header {
+  background: #2d2d30; padding: 8px 16px;
+  display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #3e3e42;
+}
+#title { font-size: 1.1em; font-weight: bold; color: #4ec9b0; }
+#tick-display { color: #9cdcfe; font-size: 0.9em; }
+#sim-controls { display: flex; align-items: center; gap: 8px; flex: 1; }
+#sim-controls button, #sim-controls select { background: #3e3e42; border: 1px solid #555; color: #d4d4d4; padding: 3px 10px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.85em; }
+#sim-controls button:hover { background: #505050; }
+.tab-btn { margin-left: auto; }
+.tab-btn.active { border-color: #4ec9b0; color: #4ec9b0; }
+
+#main { display: flex; flex: 1; overflow: hidden; }
+
+#agent-list-panel { width: 160px; background: #252526; border-right: 1px solid #3e3e42; padding: 8px; overflow-y: auto; }
+#agent-list-panel h2 { font-size: 0.8em; color: #9cdcfe; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+#agent-list { list-style: none; }
+#agent-list li { padding: 6px 8px; cursor: pointer; border-radius: 3px; font-size: 0.9em; }
+#agent-list li:hover { background: #2a2d2e; }
+#agent-list li.selected { background: #094771; color: #fff; }
+
+#detail-panel { flex: 1; overflow-y: auto; padding: 16px; }
+
+.hidden { display: none !important; }
+
+#agent-detail h2 { color: #4ec9b0; margin-bottom: 12px; }
+h3 { color: #9cdcfe; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 6px; }
+
+/* Drives */
+#drives-grid { display: grid; gap: 6px; }
+.drive-row { display: flex; align-items: center; gap: 8px; }
+.drive-label { width: 60px; font-size: 0.85em; color: #ce9178; }
+.drive-bar-bg { flex: 1; height: 14px; background: #3e3e42; border-radius: 2px; overflow: hidden; }
+.drive-bar-fill { height: 100%; background: #4ec9b0; border-radius: 2px; transition: width 0.3s; }
+.drive-bar-fill.warn  { background: #ce9178; }
+.drive-bar-fill.crit  { background: #f44747; }
+.drive-slider { width: 80px; }
+.drive-num { width: 36px; font-size: 0.8em; text-align: right; color: #9cdcfe; }
+#btn-reset-drives { margin-top: 8px; background: #3e3e42; border: 1px solid #555; color: #d4d4d4; padding: 3px 10px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.8em; }
+#btn-reset-drives:hover { background: #505050; }
+
+/* Status */
+#current-action { color: #4fc1ff; font-size: 0.95em; }
+#current-reason  { color: #808080; font-size: 0.85em; margin-top: 3px; }
+
+/* LLM */
+#llm-section label { display: block; margin: 4px 0; font-size: 0.85em; }
+#llm-section input { background: #3e3e42; border: 1px solid #555; color: #d4d4d4; padding: 3px 6px; font-family: monospace; font-size: 0.85em; width: 240px; margin-left: 6px; }
+#btn-save-llm { margin-top: 6px; background: #094771; border: 1px solid #4ec9b0; color: #4ec9b0; padding: 3px 12px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.8em; }
+
+/* Thought log / messages */
+#thought-log, #agent-messages, #global-feed {
+  background: #252526; border: 1px solid #3e3e42; border-radius: 3px;
+  padding: 8px; max-height: 220px; overflow-y: auto; font-size: 0.8em;
+}
+.log-entry { padding: 2px 0; border-bottom: 1px solid #2d2d30; }
+.log-entry .ts { color: #569cd6; margin-right: 6px; }
+.log-entry .from { color: #4ec9b0; margin-right: 4px; }
+.log-entry .to   { color: #ce9178; margin-right: 4px; }
+.log-entry .text { color: #d4d4d4; }
+
+#conversations-panel h2 { color: #4ec9b0; margin-bottom: 12px; }
+#global-feed { max-height: calc(100vh - 120px); }
