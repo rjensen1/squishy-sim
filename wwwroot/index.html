@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!-- PROTOTYPE: SquishySim web UI — not production ready -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SquishySim</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="header">
+    <span id="title">SquishySim</span>
+    <span id="sim-controls">
+      <span id="tick-display">Tick 0</span>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-resume">Resume</button>
+      <label>Speed:
+        <select id="speed-select">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </label>
+    </span>
+    <button id="btn-conversations" class="tab-btn active">Conversations</button>
+  </div>
+
+  <div id="main">
+    <!-- Left: agent list -->
+    <div id="agent-list-panel">
+      <h2>Agents</h2>
+      <ul id="agent-list"></ul>
+    </div>
+
+    <!-- Right: agent detail OR conversations -->
+    <div id="detail-panel">
+      <div id="agent-detail" class="hidden">
+        <h2 id="agent-name"></h2>
+
+        <div id="drives-section">
+          <h3>Drives</h3>
+          <div id="drives-grid"></div>
+          <button id="btn-reset-drives">Reset to defaults</button>
+        </div>
+
+        <div id="status-section">
+          <h3>Current Action</h3>
+          <div id="current-action"></div>
+          <div id="current-reason"></div>
+        </div>
+
+        <div id="llm-section">
+          <h3>LLM Config</h3>
+          <label>Model: <input id="llm-model" type="text"></label>
+          <label>Base URL: <input id="llm-url" type="text"></label>
+          <label>API Key: <input id="llm-key" type="password" placeholder="(unchanged)"></label>
+          <button id="btn-save-llm">Save</button>
+        </div>
+
+        <div id="thoughts-section">
+          <h3>Thought Log</h3>
+          <div id="thought-log"></div>
+        </div>
+
+        <div id="messages-section">
+          <h3>Conversations (this agent)</h3>
+          <div id="agent-messages"></div>
+        </div>
+      </div>
+
+      <div id="conversations-panel">
+        <h2>All Conversations</h2>
+        <div id="global-feed"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

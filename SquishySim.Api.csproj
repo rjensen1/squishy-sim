@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- PROTOTYPE: SquishySim REST API + web UI -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SquishySim</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude the MCP server subdirectory — it's a separate project -->
+    <Compile Remove="SquishySim.McpServer\**" />
+    <Content Remove="SquishySim.McpServer\**" />
+    <None    Remove="SquishySim.McpServer\**" />
+  </ItemGroup>
+
+</Project>
