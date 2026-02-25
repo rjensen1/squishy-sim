@@ -114,6 +114,7 @@ public class SimulationService
                 case "thirst":  agent.Drives.Thirst  = clamped; break;
                 case "fatigue": agent.Drives.Fatigue = clamped; break;
                 case "bladder": agent.Drives.Bladder = clamped; break;
+                case "social":  agent.Drives.Social  = clamped; break;
                 case "mood":    agent.Drives.Mood    = clamped; break;
                 default: return false;
             }
@@ -158,9 +159,17 @@ public class SimulationService
         _tickCount++;
         var now = DateTimeOffset.UtcNow;
 
+        // Collect which agents had a successful social interaction last tick,
+        // then reset the flags so this tick starts fresh.
+        var hadInteractionLastTick = _agents
+            .Where(a => a.HadSocialInteractionLastTick)
+            .Select(a => a.Id)
+            .ToHashSet();
+        foreach (var a in _agents) a.HadSocialInteractionLastTick = false;
+
         foreach (var agent in _agents)
         {
-            DriveSystem.Tick(agent.Drives);
+            DriveSystem.Tick(agent.Drives, hadInteractionLastTick.Contains(agent.Id));
 
             try
             {
@@ -172,17 +181,24 @@ public class SimulationService
                     .ChooseAsync(agent.Drives, ActionCatalog.All)
                     .GetAwaiter().GetResult();
 
-                agent.Drives.Hunger  += action.Effect.HungerDelta;
-                agent.Drives.Thirst  += action.Effect.ThirstDelta;
-                agent.Drives.Fatigue += action.Effect.FatigueDelta;
-                agent.Drives.Bladder += action.Effect.BladderDelta;
-                agent.Drives.Mood    += action.Effect.MoodDelta;
-                agent.Drives.Clamp();
+                if (action.Id == "socialize")
+                {
+                    ExecuteSocializeAction(agent, now, reason);
+                }
+                else
+                {
+                    agent.Drives.Hunger  += action.Effect.HungerDelta;
+                    agent.Drives.Thirst  += action.Effect.ThirstDelta;
+                    agent.Drives.Fatigue += action.Effect.FatigueDelta;
+                    agent.Drives.Bladder += action.Effect.BladderDelta;
+                    agent.Drives.Mood    += action.Effect.MoodDelta;
+                    agent.Drives.Clamp();
 
-                agent.CurrentAction = action.Id;
-                agent.CurrentReason = reason;
+                    agent.CurrentAction = action.Id;
+                    agent.CurrentReason = reason;
+                }
 
-                agent.Thoughts.Add(new ThoughtEntry(now, $"{action.Id}: {reason}"));
+                agent.Thoughts.Add(new ThoughtEntry(now, $"{agent.CurrentAction}: {agent.CurrentReason}"));
                 if (agent.Thoughts.Count > 200) agent.Thoughts.RemoveAt(0);
             }
             catch (Exception ex)
@@ -191,8 +207,40 @@ public class SimulationService
             }
         }
 
-        // PROTOTYPE: Simple inter-agent messaging — agents occasionally comment on state
+        // PROTOTYPE: Simple inter-agent messaging — agents occasionally comment on state.
+        // Background chatter does NOT satisfy the social drive (no HadSocialInteractionLastTick set).
         MaybeGenerateConversations(now);
+    }
+
+    private void ExecuteSocializeAction(Agent agent, DateTimeOffset now, string reason)
+    {
+        var partner = _agents
+            .Where(a => a.Id != agent.Id)
+            .OrderBy(_ => Guid.NewGuid())
+            .FirstOrDefault();
+
+        if (partner == null)
+        {
+            // No partner available — action fails, social drive unchanged this tick
+            agent.CurrentAction = "socialize";
+            agent.CurrentReason = $"{reason} (no partner available)";
+            return;
+        }
+
+        // Successful interaction — both agents receive social satisfaction next tick
+        agent.HadSocialInteractionLastTick   = true;
+        partner.HadSocialInteractionLastTick = true;
+
+        agent.CurrentAction = "socialize";
+        agent.CurrentReason = $"{reason} (with {partner.Name})";
+
+        var text = $"Hey {partner.Name}, wanted to catch up.";
+        var msg  = new ConversationMessage(now, agent.Id, partner.Id, text);
+        _allConversations.Add(msg);
+        agent.Messages.Add(msg);
+        partner.Messages.Add(msg);
+
+        if (_allConversations.Count > 500) _allConversations.RemoveAt(0);
     }
 
     private void MaybeGenerateConversations(DateTimeOffset now)

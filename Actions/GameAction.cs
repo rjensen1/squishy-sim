@@ -5,7 +5,8 @@ public record ActionEffect(
     float ThirstDelta,
     float FatigueDelta,
     float BladderDelta,
-    float MoodDelta
+    float MoodDelta,
+    float SocialDelta = 0f
 );
 
 public class GameAction
@@ -25,6 +26,7 @@ public class GameAction
             if (Effect.FatigueDelta != 0) parts.Add($"fatigue {Effect.FatigueDelta:+0.0;-0.0}");
             if (Effect.BladderDelta != 0) parts.Add($"bladder {Effect.BladderDelta:+0.0;-0.0}");
             if (Effect.MoodDelta    != 0) parts.Add($"mood {Effect.MoodDelta:+0.0;-0.0}");
+            if (Effect.SocialDelta  != 0) parts.Add($"social {Effect.SocialDelta:+0.0;-0.0}");
             return string.Join(", ", parts);
         }
     }

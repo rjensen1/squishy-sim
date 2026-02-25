@@ -39,6 +39,13 @@ public static class ActionCatalog
             Id = "do_nothing",
             Description = "sit and stare",
             Effect = new ActionEffect(HungerDelta:  0.00f, ThirstDelta:  0.00f, FatigueDelta: -0.03f, BladderDelta:  0.00f, MoodDelta: -0.04f)
+        },
+        new GameAction
+        {
+            Id = "socialize",
+            Description = "spend time with another agent",
+            // SocialDelta is applied by SimulationService (only if a partner is found)
+            Effect = new ActionEffect(HungerDelta: 0.00f, ThirstDelta: 0.00f, FatigueDelta: 0.00f, BladderDelta: 0.00f, MoodDelta: 0.00f, SocialDelta: -0.25f)
         }
     };
 
