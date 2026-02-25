@@ -1,4 +1,5 @@
 // PROTOTYPE: Simulation control REST API
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using SquishySim.Services;
 
@@ -48,8 +49,13 @@ public class SimController : ControllerBase
 
     // GET /sim/status  — convenience for UI polling
     [HttpGet("status")]
-    public IActionResult Status() =>
-        Ok(new { paused = _sim.IsPaused, tick = _sim.TickCount, speed = _sim.SpeedMultiplier });
+    public IActionResult Status()
+    {
+        var version = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion ?? "unknown";
+        return Ok(new { paused = _sim.IsPaused, tick = _sim.TickCount, speed = _sim.SpeedMultiplier, version });
+    }
 }
 
 public record SetSpeedRequest(double Multiplier);
