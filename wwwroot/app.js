@@ -43,6 +43,7 @@ async function refresh() {
     ]);
 
     document.getElementById('tick-display').textContent = `Tick ${statusData.tick}`;
+    document.getElementById('version-display').textContent = statusData.version ?? '';
 
     const isPaused = statusData.paused;
     document.getElementById('btn-pause').classList.toggle('active', isPaused === true);

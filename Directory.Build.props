@@ -1,0 +1,20 @@
+<Project>
+
+  <Target Name="SetVersionFromGit" BeforeTargets="GenerateAssemblyInfo">
+    <!-- Run git rev-list to get total commit count for patch version -->
+    <Exec Command="git rev-list --count HEAD"
+          ConsoleToMSBuild="true"
+          ContinueOnError="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitCount" />
+    </Exec>
+    <PropertyGroup>
+      <!-- Fall back to 0 if git is unavailable (e.g. CI without git, shallow clone) -->
+      <GitCommitCount Condition="'$(GitCommitCount)' == ''">0</GitCommitCount>
+      <GitCommitCount>$(GitCommitCount.Trim())</GitCommitCount>
+      <Version>0.1.$(GitCommitCount)</Version>
+      <InformationalVersion>v0.1.$(GitCommitCount)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
+
+</Project>
