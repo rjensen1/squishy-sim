@@ -12,22 +12,29 @@ public class RuleBasedDecisionMaker : IDecisionMaker
 {
     public string DisplayName => "rule-based";
 
+    // Context modifier: when Social < SocialTriggerThreshold, agent is socially engaged —
+    // physical-drive action thresholds are raised by ContextModifier (capped at 1.0).
+    private const float ContextModifier       = 0.20f;
+    private const float SocialTriggerThreshold = 0.65f;
+
     public Task<(GameAction action, string reason)> ChooseAsync(
         BodyState state, IReadOnlyList<GameAction> actions)
     {
-        if (state.Bladder > 0.80f)
+        float mod = state.Social < SocialTriggerThreshold ? ContextModifier : 0f;
+
+        if (state.Bladder > Math.Min(0.80f + mod, 1.0f))
             return Done("use_toilet", "bladder is urgent");
 
-        if (state.Thirst > 0.70f)
+        if (state.Thirst > Math.Min(0.70f + mod, 1.0f))
             return Done("drink_water", "thirst is high");
 
-        if (state.Hunger > 0.70f)
+        if (state.Hunger > Math.Min(0.70f + mod, 1.0f))
             return Done("eat_food", "hunger is high");
 
-        if (state.Fatigue > 0.75f)
+        if (state.Fatigue > Math.Min(0.75f + mod, 1.0f))
             return Done("sleep", "fatigue is high");
 
-        if (state.Social > 0.65f)
+        if (state.Social > SocialTriggerThreshold)
             return Done("socialize", "feeling isolated");
 
         if (state.Mood < 0.35f)
