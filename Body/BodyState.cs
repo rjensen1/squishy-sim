@@ -11,12 +11,14 @@ public class BodyState
     public float Thirst  { get; set; } = 0.10f;
     public float Fatigue { get; set; } = 0.10f;
     public float Bladder { get; set; } = 0.00f;
+    public float Social  { get; set; } = 0.10f;  // 0=satisfied, 1=isolated
     public float Mood    { get; set; } = 0.70f;
 
     public string HungerLabel  => DriveLabel(Hunger);
     public string ThirstLabel  => DriveLabel(Thirst);
     public string FatigueLabel => DriveLabel(Fatigue);
     public string BladderLabel => DriveLabel(Bladder);
+    public string SocialLabel  => DriveLabel(Social);
 
     public string MoodLabel => Mood switch
     {
@@ -40,6 +42,7 @@ public class BodyState
         Thirst  = Math.Clamp(Thirst,  0f, 1f);
         Fatigue = Math.Clamp(Fatigue, 0f, 1f);
         Bladder = Math.Clamp(Bladder, 0f, 1f);
+        Social  = Math.Clamp(Social,  0f, 1f);
         Mood    = Math.Clamp(Mood,    0f, 1f);
     }
 }

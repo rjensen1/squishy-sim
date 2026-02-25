@@ -19,4 +19,8 @@ public class Agent
 
     public LlmConfig       LlmConfig     { get; set; } = new();
     public IDecisionMaker  DecisionMaker { get; set; } = new RuleBasedDecisionMaker();
+
+    // Set by SimulationService when a socialize action succeeds this tick;
+    // consumed by DriveSystem.Tick the following tick to apply social satisfaction.
+    public bool HadSocialInteractionLastTick { get; set; } = false;
 }

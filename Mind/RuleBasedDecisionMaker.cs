@@ -27,6 +27,9 @@ public class RuleBasedDecisionMaker : IDecisionMaker
         if (state.Fatigue > 0.75f)
             return Done("sleep", "fatigue is high");
 
+        if (state.Social > 0.65f)
+            return Done("socialize", "feeling isolated");
+
         if (state.Mood < 0.35f)
             return Done("wander", "mood is low — needs stimulation");
 
