@@ -9,10 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Exclude the MCP server subdirectory — it's a separate project -->
+    <!-- Exclude the MCP server and test subdirectories — they are separate projects -->
     <Compile Remove="SquishySim.McpServer\**" />
     <Content Remove="SquishySim.McpServer\**" />
     <None    Remove="SquishySim.McpServer\**" />
+    <Compile Remove="SquishySim.Tests\**" />
+    <Content Remove="SquishySim.Tests\**" />
+    <None    Remove="SquishySim.Tests\**" />
   </ItemGroup>
 
 </Project>

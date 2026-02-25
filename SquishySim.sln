@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SquishySim.Api", "SquishySi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SquishySim.McpServer", "SquishySim.McpServer\SquishySim.McpServer.csproj", "{EF769C12-D95E-4C76-B03D-1D9D4A88AF7C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SquishySim.Tests", "SquishySim.Tests\SquishySim.Tests.csproj", "{641A492B-704E-4D1C-9CA5-384F68A964F8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{EF769C12-D95E-4C76-B03D-1D9D4A88AF7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF769C12-D95E-4C76-B03D-1D9D4A88AF7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF769C12-D95E-4C76-B03D-1D9D4A88AF7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{641A492B-704E-4D1C-9CA5-384F68A964F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{641A492B-704E-4D1C-9CA5-384F68A964F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{641A492B-704E-4D1C-9CA5-384F68A964F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{641A492B-704E-4D1C-9CA5-384F68A964F8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
