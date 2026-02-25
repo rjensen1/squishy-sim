@@ -12,9 +12,11 @@ public static class DriveSystem
 
     public static void Tick(BodyState state)
     {
-        state.Hunger  += HungerRate;
+        var modifiers = DriveInteractionSystem.ComputeCrossEffects(state);
+
+        state.Hunger  += HungerRate  * modifiers.HungerRateMultiplier;
         state.Thirst  += ThirstRate;
-        state.Fatigue += FatigueRate;
+        state.Fatigue += FatigueRate * modifiers.FatigueRateMultiplier;
 
         // Mood degrades when critical drives go unmet
         float distress = 0f;
