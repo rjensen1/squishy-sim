@@ -28,7 +28,7 @@ public class AgentsController : ControllerBase
     [HttpPost("{id}/drives/{drive}")]
     public IActionResult SetDrive(string id, string drive, [FromBody] SetDriveRequest req)
     {
-        var valid = new[] { "hunger", "thirst", "fatigue", "bladder", "mood" };
+        var valid = new[] { "hunger", "thirst", "fatigue", "bladder", "social", "mood" };
         if (!valid.Contains(drive.ToLowerInvariant()))
             return BadRequest(new { error = $"Unknown drive '{drive}'. Valid: {string.Join(", ", valid)}" });
 
@@ -91,11 +91,11 @@ public record AgentDto(
 {
     public static AgentDto From(SquishySim.Domain.Agent a) => new(
         a.Id, a.Name,
-        new DrivesDto(a.Drives.Hunger, a.Drives.Thirst, a.Drives.Fatigue, a.Drives.Bladder, a.Drives.Mood),
+        new DrivesDto(a.Drives.Hunger, a.Drives.Thirst, a.Drives.Fatigue, a.Drives.Bladder, a.Drives.Social, a.Drives.Mood),
         a.CurrentAction, a.CurrentReason,
         new LlmConfigDto(a.LlmConfig.Model, a.LlmConfig.BaseUrl, a.LlmConfig.HasApiKey ? "***" : null)
     );
 }
 
-public record DrivesDto(float Hunger, float Thirst, float Fatigue, float Bladder, float Mood);
+public record DrivesDto(float Hunger, float Thirst, float Fatigue, float Bladder, float Social, float Mood);
 public record LlmConfigDto(string Model, string BaseUrl, string? ApiKey);
