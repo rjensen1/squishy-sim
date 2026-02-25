@@ -11,6 +11,7 @@ body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100v
 #sim-controls { display: flex; align-items: center; gap: 8px; flex: 1; }
 #sim-controls button, #sim-controls select { background: #3e3e42; border: 1px solid #555; color: #d4d4d4; padding: 3px 10px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.85em; }
 #sim-controls button:hover { background: #505050; }
+#sim-controls button.active { border-color: #4ec9b0; color: #4ec9b0; background: #1e3d2e; }
 .tab-btn { margin-left: auto; }
 .tab-btn.active { border-color: #4ec9b0; color: #4ec9b0; }
 

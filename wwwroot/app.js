@@ -44,6 +44,10 @@ async function refresh() {
 
     document.getElementById('tick-display').textContent = `Tick ${statusData.tick}`;
 
+    const isPaused = statusData.paused;
+    document.getElementById('btn-pause').classList.toggle('active', isPaused === true);
+    document.getElementById('btn-resume').classList.toggle('active', isPaused === false);
+
     renderAgentList(agentsData);
     if (selectedAgentId) refreshAgentDetail();
     if (showingConversations) refreshConversations();
@@ -132,7 +136,11 @@ function updateDriveUI(drive, val) {
     if (!bar) return;
     const pct = Math.round(val * 100);
     bar.style.width = `${pct}%`;
-    bar.className = 'drive-bar-fill' + (val > 0.85 ? ' crit' : val > 0.65 ? ' warn' : '');
+    if (drive === 'mood') {
+        bar.className = 'drive-bar-fill' + (val < 0.15 ? ' crit' : val < 0.35 ? ' warn' : '');
+    } else {
+        bar.className = 'drive-bar-fill' + (val > 0.85 ? ' crit' : val > 0.65 ? ' warn' : '');
+    }
     slider.value = pct;
     num.textContent = val.toFixed(2);
 }
