@@ -97,4 +97,32 @@ public class DriveInteractionSystemTests
         Assert.True(fatigueDelta > BaseFatigueRate,
             $"Expected fatigue delta > {BaseFatigueRate} (base rate) but got {fatigueDelta}");
     }
+
+    // ── AC-boundary: off-by-one guard on hunger→fatigue threshold ────────────
+
+    [Fact]
+    public void Tick_HungerJustBelowThreshold_FatigueAccumulatesAtExactBaseRate()
+    {
+        // hunger=0.59f is below threshold — no cross-effect, fatigue delta = FatigueRate exactly
+        const float BaseFatigueRate = 0.012f;
+        var state = new BodyState { Hunger = 0.59f, Fatigue = 0.10f };
+        var fatigueBefore = state.Fatigue;
+
+        DriveSystem.Tick(state);
+
+        Assert.Equal(BaseFatigueRate, state.Fatigue - fatigueBefore, precision: 6);
+    }
+
+    [Fact]
+    public void Tick_HungerJustAboveThreshold_FatigueAccumulatesAtExactModifiedRate()
+    {
+        // hunger=0.61f is above threshold — fatigueRate x1.20 = 0.012f * 1.20f = 0.0144f exactly
+        const float ExpectedFatigueDelta = 0.012f * 1.20f;
+        var state = new BodyState { Hunger = 0.61f, Fatigue = 0.10f };
+        var fatigueBefore = state.Fatigue;
+
+        DriveSystem.Tick(state);
+
+        Assert.Equal(ExpectedFatigueDelta, state.Fatigue - fatigueBefore, precision: 6);
+    }
 }
