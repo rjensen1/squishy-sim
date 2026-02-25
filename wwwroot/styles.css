@@ -53,7 +53,15 @@ h3 { color: #9cdcfe; font-size: 0.85em; text-transform: uppercase; letter-spacin
 #llm-section input { background: #3e3e42; border: 1px solid #555; color: #d4d4d4; padding: 3px 6px; font-family: monospace; font-size: 0.85em; width: 240px; margin-left: 6px; }
 #btn-save-llm { margin-top: 6px; background: #094771; border: 1px solid #4ec9b0; color: #4ec9b0; padding: 3px 12px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.8em; }
 
-/* Thought log / messages */
+/* Thought log / messages — side-by-side layout */
+#thoughts-messages-row {
+  display: flex;
+  gap: 1rem;
+}
+#thoughts-messages-row > div {
+  flex: 1;
+  min-width: 0; /* prevent flex children from overflowing their scrollable containers */
+}
 #thought-log, #agent-messages, #global-feed {
   background: #252526; border: 1px solid #3e3e42; border-radius: 3px;
   padding: 8px; max-height: 220px; overflow-y: auto; font-size: 0.8em;
