@@ -88,16 +88,23 @@ public record AgentDto(
     DrivesDto Drives,
     string CurrentAction, string CurrentReason,
     LlmConfigDto LlmConfig,
-    bool ContextModifierActive)
+    bool ContextModifierActive,
+    PositionDto Position,
+    PositionDto? Destination,
+    string NavState)
 {
     public static AgentDto From(SquishySim.Domain.Agent a) => new(
         a.Id, a.Name,
         new DrivesDto(a.Drives.Hunger, a.Drives.Thirst, a.Drives.Fatigue, a.Drives.Bladder, a.Drives.Social, a.Drives.Mood),
         a.CurrentAction, a.CurrentReason,
         new LlmConfigDto(a.LlmConfig.Model, a.LlmConfig.BaseUrl, a.LlmConfig.HasApiKey ? "***" : null),
-        a.Drives.Social < 0.65f
+        a.Drives.Social < 0.65f,
+        new PositionDto(a.Position.X, a.Position.Y),
+        a.Destination.HasValue ? new PositionDto(a.Destination.Value.X, a.Destination.Value.Y) : null,
+        a.NavState.ToString()
     );
 }
 
 public record DrivesDto(float Hunger, float Thirst, float Fatigue, float Bladder, float Social, float Mood);
 public record LlmConfigDto(string Model, string BaseUrl, string? ApiKey);
+public record PositionDto(float X, float Y);

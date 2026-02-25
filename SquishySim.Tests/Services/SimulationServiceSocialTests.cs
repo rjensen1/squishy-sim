@@ -1,3 +1,4 @@
+using SquishySim.Domain;
 using SquishySim.Services;
 
 namespace SquishySim.Tests.Services;
@@ -12,19 +13,30 @@ namespace SquishySim.Tests.Services;
 public class SimulationServiceSocialTests
 {
     // ── AC7: Partner found — conversation generated, satisfaction next tick ──
+    // Phase 3.5 note: socialize is now navigation-based. Tests place agents within
+    // SocialRange (2.5f) so the interaction fires within a single Step().
 
     [Fact]
     public void WhenAgentSocializesWith_PartnerAvailable_ConversationIsGenerated()
     {
-        var sim = new SimulationService();
+        var sim   = new SimulationService();
+        var alice = sim.GetAgent("alice")!;
+        var bob   = sim.GetAgent("bob")!;
 
-        // Set Alice's social drive above the trigger threshold
-        sim.SetDrive("alice", "social", 0.80);
-        // Set other drives low so Alice will choose socialize
+        // Place alice and bob within SocialRange so interaction fires this tick
+        alice.Position = (5f, 5f);
+        bob.Position   = (6f, 5f);   // distance = 1.0f < SocialRange(2.5f)
+
+        sim.SetDrive("alice", "social",  0.80);
         sim.SetDrive("alice", "hunger",  0.10);
         sim.SetDrive("alice", "thirst",  0.10);
         sim.SetDrive("alice", "fatigue", 0.10);
         sim.SetDrive("alice", "bladder", 0.10);
+
+        // Seed alice as Seeking bob so movement phase fires
+        alice.NavState     = NavigationState.Seeking;
+        alice.SeekTargetId = "bob";
+        alice.Destination  = bob.Position;
 
         sim.Step();
 
@@ -36,33 +48,49 @@ public class SimulationServiceSocialTests
     [Fact]
     public void WhenSocializeSucceeds_AgentCurrentActionIs_Socialize()
     {
-        var sim = new SimulationService();
-
-        sim.SetDrive("alice", "social", 0.80);
-        sim.SetDrive("alice", "hunger",  0.10);
-        sim.SetDrive("alice", "thirst",  0.10);
-        sim.SetDrive("alice", "fatigue", 0.10);
-        sim.SetDrive("alice", "bladder", 0.10);
-
-        sim.Step();
-
+        var sim   = new SimulationService();
         var alice = sim.GetAgent("alice")!;
-        Assert.Equal("socialize", alice.CurrentAction);
-    }
+        var bob   = sim.GetAgent("bob")!;
 
-    [Fact]
-    public void WhenSocializeSucceeds_SocialDriveDecreasesOnFollowingTick()
-    {
-        var sim = new SimulationService();
+        alice.Position = (5f, 5f);
+        bob.Position   = (6f, 5f);
 
-        // Put Alice in isolation — above trigger
         sim.SetDrive("alice", "social",  0.80);
         sim.SetDrive("alice", "hunger",  0.10);
         sim.SetDrive("alice", "thirst",  0.10);
         sim.SetDrive("alice", "fatigue", 0.10);
         sim.SetDrive("alice", "bladder", 0.10);
 
-        // Tick 1: Alice socializes — partner found, HadSocialInteractionLastTick set
+        alice.NavState     = NavigationState.Seeking;
+        alice.SeekTargetId = "bob";
+        alice.Destination  = bob.Position;
+
+        sim.Step();
+
+        Assert.Equal("socialize", alice.CurrentAction);
+    }
+
+    [Fact]
+    public void WhenSocializeSucceeds_SocialDriveDecreasesOnFollowingTick()
+    {
+        var sim   = new SimulationService();
+        var alice = sim.GetAgent("alice")!;
+        var bob   = sim.GetAgent("bob")!;
+
+        alice.Position = (5f, 5f);
+        bob.Position   = (6f, 5f);
+
+        sim.SetDrive("alice", "social",  0.80);
+        sim.SetDrive("alice", "hunger",  0.10);
+        sim.SetDrive("alice", "thirst",  0.10);
+        sim.SetDrive("alice", "fatigue", 0.10);
+        sim.SetDrive("alice", "bladder", 0.10);
+
+        alice.NavState     = NavigationState.Seeking;
+        alice.SeekTargetId = "bob";
+        alice.Destination  = bob.Position;
+
+        // Tick 1: interaction fires — HadSocialInteractionLastTick set on both
         sim.Step();
         var socialAfterTick1 = sim.GetAgent("alice")!.Drives.Social;
 
@@ -78,23 +106,27 @@ public class SimulationServiceSocialTests
     [Fact]
     public void WhenSocializeSucceeds_PartnerAlsoReceivesSocialSatisfactionNextTick()
     {
-        var sim = new SimulationService();
+        var sim   = new SimulationService();
+        var alice = sim.GetAgent("alice")!;
+        var bob   = sim.GetAgent("bob")!;
 
-        // Alice socializes; partner (bob or charlie) should also benefit
+        alice.Position = (5f, 5f);
+        bob.Position   = (6f, 5f);
+
         sim.SetDrive("alice", "social",  0.80);
         sim.SetDrive("alice", "hunger",  0.10);
         sim.SetDrive("alice", "thirst",  0.10);
         sim.SetDrive("alice", "fatigue", 0.10);
         sim.SetDrive("alice", "bladder", 0.10);
 
+        alice.NavState     = NavigationState.Seeking;
+        alice.SeekTargetId = "bob";
+        alice.Destination  = bob.Position;
+
+        // Tick 1: interaction fires — both agents get HadSocialInteractionLastTick
         sim.Step();
 
-        // Find who alice talked to
-        var conversation = sim.AllConversations.FirstOrDefault(c => c.FromAgentId == "alice");
-        Assert.NotNull(conversation);
-        var partnerId = conversation.ToAgentId;
-
-        // Freeze partner's other drives so we can observe social change
+        const string partnerId = "bob";
         sim.SetDrive(partnerId, "hunger",  0.10);
         sim.SetDrive(partnerId, "thirst",  0.10);
         sim.SetDrive(partnerId, "fatigue", 0.10);
