@@ -1,8 +1,8 @@
 // PROTOTYPE: SquishySim web client
 'use strict';
 
-const DRIVES = ['hunger', 'thirst', 'fatigue', 'bladder', 'mood'];
-const DEFAULT_DRIVES = { hunger: 0.10, thirst: 0.10, fatigue: 0.10, bladder: 0.00, mood: 0.70 };
+const DRIVES = ['hunger', 'thirst', 'fatigue', 'bladder', 'social', 'mood'];
+const DEFAULT_DRIVES = { hunger: 0.10, thirst: 0.10, fatigue: 0.10, bladder: 0.00, social: 0.10, mood: 0.70 };
 
 let selectedAgentId = null;
 let showingConversations = false;
