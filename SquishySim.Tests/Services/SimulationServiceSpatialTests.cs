@@ -16,13 +16,15 @@ public class SimulationServiceSpatialTests
         var sim   = MakeSim();
         var alice = sim.GetAgent("alice")!;
 
-        // Place alice far from food; set hunger high so decision maker picks eat_food
+        // Place alice far from food; set hunger high so decision maker picks eat_food.
+        // Social=0.70 (above SocialTriggerThreshold=0.65) disables Phase 3 context modifier
+        // so hunger threshold stays at 0.70 and 0.80 reliably triggers eat_food.
         alice.Position  = (0f, 0f);
         alice.Drives.Hunger  = 0.80f;   // above 0.70f threshold → eat_food
         alice.Drives.Thirst  = 0.10f;
         alice.Drives.Fatigue = 0.10f;
         alice.Drives.Bladder = 0.10f;
-        alice.Drives.Social  = 0.10f;
+        alice.Drives.Social  = 0.70f;   // above SocialTriggerThreshold → context modifier inactive
 
         sim.Step();
 
@@ -43,7 +45,9 @@ public class SimulationServiceSpatialTests
         var sim   = MakeSim();
         var alice = sim.GetAgent("alice")!;
 
-        // Place alice within interact radius of food station (5,5)
+        // Place alice within interact radius of food station (5,5).
+        // Social=0.70 disables Phase 3 context modifier so hunger threshold stays at 0.70
+        // and eat_food is chosen; CurrentAction must be "eat_food" for ApplyArrivalEffects to work.
         alice.Position    = (5f, 5f - ResourceInteractRadius + 0.1f);  // just inside radius
         alice.NavState    = NavigationState.Committed;
         alice.Destination = (5f, 5f);
@@ -51,7 +55,7 @@ public class SimulationServiceSpatialTests
         alice.Drives.Thirst  = 0.10f;
         alice.Drives.Fatigue = 0.10f;
         alice.Drives.Bladder = 0.10f;
-        alice.Drives.Social  = 0.10f;
+        alice.Drives.Social  = 0.70f;   // above SocialTriggerThreshold → context modifier inactive
 
         var hungerBefore = alice.Drives.Hunger;
 
@@ -71,7 +75,9 @@ public class SimulationServiceSpatialTests
         var sim   = MakeSim();
         var alice = sim.GetAgent("alice")!;
 
-        // Alice is currently navigating to water (thirst was high, bladder was low)
+        // Alice is currently navigating to water (thirst was high, bladder was low).
+        // Social=0.70 disables Phase 3 context modifier so bladder threshold stays at 0.80
+        // and 0.85 reliably triggers use_toilet preemption (with modifier active, threshold=1.0).
         alice.Position    = (0f, 0f);
         alice.NavState    = NavigationState.Committed;
         alice.Destination = (15f, 5f);   // water station
@@ -79,7 +85,7 @@ public class SimulationServiceSpatialTests
         alice.Drives.Bladder = 0.85f;    // bladder above threshold → use_toilet takes priority
         alice.Drives.Hunger  = 0.10f;
         alice.Drives.Fatigue = 0.10f;
-        alice.Drives.Social  = 0.10f;
+        alice.Drives.Social  = 0.70f;    // above SocialTriggerThreshold → context modifier inactive
 
         sim.Step();
 
