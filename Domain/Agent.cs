@@ -23,4 +23,13 @@ public class Agent
     // Set by SimulationService when a socialize action succeeds this tick;
     // consumed by DriveSystem.Tick the following tick to apply social satisfaction.
     public bool HadSocialInteractionLastTick { get; set; } = false;
+
+    // ── Spatial state ─────────────────────────────────────────────────────────
+
+    public (float X, float Y)  Position    { get; set; } = (10f, 10f);
+    public (float X, float Y)? Destination { get; set; } = null;
+    public NavigationState     NavState    { get; set; } = NavigationState.Idle;
+
+    // ID of the agent being sought (set when NavState == Seeking; null otherwise)
+    public string? SeekTargetId { get; set; } = null;
 }

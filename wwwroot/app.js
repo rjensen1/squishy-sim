@@ -94,6 +94,11 @@ async function refreshAgentDetail() {
     renderDrives(agent.drives);
     document.getElementById('current-action').textContent = agent.currentAction;
     document.getElementById('current-reason').textContent = agent.currentReason;
+    const pos  = agent.position;
+    const dest = agent.destination;
+    const destStr = dest ? `→ (${dest.x.toFixed(1)}, ${dest.y.toFixed(1)})` : '';
+    document.getElementById('spatial-status').textContent =
+        `pos(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) ${destStr} [${agent.navState}]`;
     document.getElementById('llm-model').value = agent.llmConfig.model;
     document.getElementById('llm-url').value   = agent.llmConfig.baseUrl;
     await refreshThoughts();

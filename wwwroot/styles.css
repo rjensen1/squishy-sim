@@ -45,8 +45,9 @@ h3 { color: #9cdcfe; font-size: 0.85em; text-transform: uppercase; letter-spacin
 #btn-reset-drives:hover { background: #505050; }
 
 /* Status */
-#current-action { color: #4fc1ff; font-size: 0.95em; }
+#current-action  { color: #4fc1ff; font-size: 0.95em; }
 #current-reason  { color: #808080; font-size: 0.85em; margin-top: 3px; }
+#spatial-status  { color: #ce9178; font-size: 0.8em; margin-top: 3px; font-family: monospace; }
 
 /* LLM */
 #llm-section label { display: block; margin: 4px 0; font-size: 0.85em; }
