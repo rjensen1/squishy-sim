@@ -258,6 +258,7 @@ function initMapStatic() {
             x: r.x, y: r.y,
             'font-size': '0.8', fill: '#1a1a1a',
             'text-anchor': 'middle', 'dominant-baseline': 'central',
+            cursor: 'default',
         });
         t.textContent = r.label;
         g.appendChild(t);
@@ -319,6 +320,7 @@ function renderSimMap(agents) {
             x: a.position.x, y: a.position.y,
             'font-size': '0.7', fill: '#1a1a1a',
             'text-anchor': 'middle', 'dominant-baseline': 'central',
+            cursor: 'default',
         });
         t.textContent = label;
         if (tip) t.appendChild(svgTitle(tip));
