@@ -4,6 +4,23 @@
 const DRIVES = ['hunger', 'thirst', 'fatigue', 'bladder', 'social', 'mood'];
 const DEFAULT_DRIVES = { hunger: 0.10, thirst: 0.10, fatigue: 0.10, bladder: 0.00, social: 0.10, mood: 0.70 };
 
+// ── SVG map constants ─────────────────────────────────────────────────────────
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// Keyed by agent ID — add entries here if agents are added
+const AGENT_COLORS = {
+    alice:   '#4fc1ff',
+    bob:     '#ce9178',
+    charlie: '#c3e88d',
+};
+
+const RESOURCES = [
+    { x: 5,  y: 5,  fill: '#81c784', label: 'F' },
+    { x: 15, y: 5,  fill: '#4fc3f7', label: 'W' },
+    { x: 15, y: 15, fill: '#bcaaa4', label: 'T' },
+    { x: 5,  y: 15, fill: '#ffb74d', label: 'S' },
+];
+
 let selectedAgentId = null;
 let showingConversations = false;
 
@@ -11,6 +28,7 @@ let showingConversations = false;
 
 window.addEventListener('DOMContentLoaded', () => {
     bindControls();
+    initMapStatic();
     refresh();
     setInterval(refresh, 1500);
 });
@@ -50,6 +68,7 @@ async function refresh() {
     document.getElementById('btn-resume').classList.toggle('active', isPaused === false);
 
     renderAgentList(agentsData);
+    renderSimMap(agentsData);
     if (selectedAgentId) refreshAgentDetail();
     if (showingConversations) refreshConversations();
 }
@@ -94,11 +113,7 @@ async function refreshAgentDetail() {
     renderDrives(agent.drives);
     document.getElementById('current-action').textContent = agent.currentAction;
     document.getElementById('current-reason').textContent = agent.currentReason;
-    const pos  = agent.position;
-    const dest = agent.destination;
-    const destStr = dest ? `→ (${dest.x.toFixed(1)}, ${dest.y.toFixed(1)})` : '';
-    document.getElementById('spatial-status').textContent =
-        `pos(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) ${destStr} [${agent.navState}]`;
+    document.getElementById('spatial-status').textContent = agent.navState ?? '';
     document.getElementById('llm-model').value = agent.llmConfig.model;
     document.getElementById('llm-url').value   = agent.llmConfig.baseUrl;
     await refreshThoughts();
@@ -207,6 +222,92 @@ async function saveLlm() {
     const apiKey  = document.getElementById('llm-key').value || null;
     await api('PUT', `/agents/${selectedAgentId}/llm`, { model, baseUrl, apiKey });
     document.getElementById('llm-key').value = '';
+}
+
+// ── SVG Map ───────────────────────────────────────────────────────────────────
+
+function svgEl(tag, attrs) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+}
+
+// Render static layer once on load: grid lines + resource icons
+function initMapStatic() {
+    const g = document.getElementById('map-static');
+    if (!g) return;
+
+    // Faint grid lines at 5-unit intervals (4 lines each axis)
+    for (let i = 5; i < 20; i += 5) {
+        g.appendChild(svgEl('line', { x1: i, y1: 0, x2: i, y2: 20, stroke: '#2a2a2a', 'stroke-width': '0.1' }));
+        g.appendChild(svgEl('line', { x1: 0, y1: i, x2: 20, y2: i, stroke: '#2a2a2a', 'stroke-width': '0.1' }));
+    }
+
+    // Resource icons: 1×1 square centered on position, with 1-char label
+    RESOURCES.forEach(r => {
+        g.appendChild(svgEl('rect', { x: r.x - 0.5, y: r.y - 0.5, width: 1, height: 1, fill: r.fill }));
+        const t = svgEl('text', {
+            x: r.x, y: r.y,
+            'font-size': '0.8', fill: '#1a1a1a',
+            'text-anchor': 'middle', 'dominant-baseline': 'central',
+        });
+        t.textContent = r.label;
+        g.appendChild(t);
+    });
+}
+
+// Redrawn each poll: nav state lines (first) then agent circles (on top)
+function renderSimMap(agents) {
+    const mapDynamic = document.getElementById('map-dynamic');
+    if (!mapDynamic) return;
+    mapDynamic.innerHTML = '';
+
+    // Draw nav lines first so circles render on top
+    agents.forEach(a => {
+        if (!a.position || !a.destination) return;
+        const state = (a.navState ?? '').toLowerCase();
+        let stroke, strokeWidth, dashArray;
+
+        if (state === 'committed') {
+            stroke = 'rgba(255,255,255,0.35)'; strokeWidth = '0.2'; dashArray = '2,1';
+        } else if (state === 'seeking') {
+            stroke = 'rgba(129,199,132,0.6)'; strokeWidth = '0.2'; dashArray = '2,1';
+        } else if (state === 'preempted') {
+            stroke = 'rgba(255,138,101,0.85)'; strokeWidth = '0.25'; dashArray = null;
+        } else {
+            return; // Idle — no line
+        }
+
+        const attrs = {
+            x1: a.position.x, y1: a.position.y,
+            x2: a.destination.x, y2: a.destination.y,
+            stroke, 'stroke-width': strokeWidth,
+        };
+        if (dashArray) attrs['stroke-dasharray'] = dashArray;
+        mapDynamic.appendChild(svgEl('line', attrs));
+    });
+
+    // Draw agent circles on top of lines
+    agents.forEach(a => {
+        if (!a.position) return;
+        const color = AGENT_COLORS[a.id] ?? '#888888';
+        const isSelected = a.id === selectedAgentId;
+        const r = isSelected ? '0.8' : '0.65';
+
+        const circleAttrs = { cx: a.position.x, cy: a.position.y, r, fill: color };
+        if (isSelected) { circleAttrs.stroke = '#ffffff'; circleAttrs['stroke-width'] = '0.15'; }
+        mapDynamic.appendChild(svgEl('circle', circleAttrs));
+
+        // Initial of agent name as label
+        const label = a.name ? a.name[0] : a.id[0].toUpperCase();
+        const t = svgEl('text', {
+            x: a.position.x, y: a.position.y,
+            'font-size': '0.7', fill: '#1a1a1a',
+            'text-anchor': 'middle', 'dominant-baseline': 'central',
+        });
+        t.textContent = label;
+        mapDynamic.appendChild(t);
+    });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

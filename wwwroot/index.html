@@ -46,11 +46,21 @@
           <button id="btn-reset-drives">Reset to defaults</button>
         </div>
 
-        <div id="status-section">
-          <h3>Current Action</h3>
-          <div id="current-action"></div>
-          <div id="current-reason"></div>
-          <div id="spatial-status"></div>
+        <div id="action-map-row">
+          <div id="status-section">
+            <h3>Current Action</h3>
+            <div id="current-action"></div>
+            <div id="current-reason"></div>
+            <div id="spatial-status"></div>
+          </div>
+          <div id="map-section">
+            <svg id="sim-map" width="280" height="280" viewBox="0 0 20 20">
+              <!-- static layer: grid + resource icons (rendered once) -->
+              <g id="map-static"></g>
+              <!-- dynamic layer: nav lines + agent circles (redrawn each tick) -->
+              <g id="map-dynamic"></g>
+            </svg>
+          </div>
         </div>
 
         <div id="llm-section">
