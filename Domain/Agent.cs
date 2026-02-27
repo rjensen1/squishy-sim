@@ -6,8 +6,9 @@ namespace SquishySim.Domain;
 // PROTOTYPE: Agent domain model — wraps biological drives + decision-making + history
 public class Agent
 {
-    public string Id   { get; init; } = "";
-    public string Name { get; init; } = "";
+    public string  Id      { get; init; } = "";
+    public string  Name    { get; init; } = "";
+    public string? Persona { get; init; }  // Optional per-agent personality string passed to LLM prompt
 
     public BodyState Drives { get; init; } = new();
 
