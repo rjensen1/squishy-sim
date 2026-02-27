@@ -305,14 +305,15 @@ function renderSimMap(agents) {
         const circleAttrs = { cx: a.position.x, cy: a.position.y, r, fill: color };
         if (isSelected) { circleAttrs.stroke = '#ffffff'; circleAttrs['stroke-width'] = '0.15'; }
         const circle = svgEl('circle', circleAttrs);
+        let tip = null;
         if (a.drives) {
             const d = a.drives;
-            const tip = `${a.name}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}`;
+            tip = `${a.name}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}`;
             circle.appendChild(svgTitle(tip));
         }
         mapDynamic.appendChild(circle);
 
-        // Initial of agent name as label
+        // Initial of agent name as label — also carries tooltip so hovering the letter works
         const label = a.name ? a.name[0] : a.id[0].toUpperCase();
         const t = svgEl('text', {
             x: a.position.x, y: a.position.y,
@@ -320,6 +321,7 @@ function renderSimMap(agents) {
             'text-anchor': 'middle', 'dominant-baseline': 'central',
         });
         t.textContent = label;
+        if (tip) t.appendChild(svgTitle(tip));
         mapDynamic.appendChild(t);
     });
 }
