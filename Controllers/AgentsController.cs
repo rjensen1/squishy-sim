@@ -83,6 +83,9 @@ public record SetDriveRequest(double Value);
 public record SetLlmRequest(string Model, string BaseUrl, string? ApiKey);
 
 // DTO — api_key is never included
+// SECURITY-NOTE: SuppressionBudget and IsSnapped are read-only in this DTO.
+// If a writable endpoint is added for dev tooling, setting budget=0 allows forcing
+// any agent to snap on demand — obvious manipulation surface if ever network-facing.
 public record AgentDto(
     string Id, string Name,
     DrivesDto Drives,
@@ -91,20 +94,22 @@ public record AgentDto(
     bool ContextModifierActive,
     PositionDto Position,
     PositionDto? Destination,
-    string NavState)
+    string NavState,
+    bool IsSnapped)
 {
     public static AgentDto From(SquishySim.Domain.Agent a) => new(
         a.Id, a.Name,
-        new DrivesDto(a.Drives.Hunger, a.Drives.Thirst, a.Drives.Fatigue, a.Drives.Bladder, a.Drives.Social, a.Drives.Mood),
+        new DrivesDto(a.Drives.Hunger, a.Drives.Thirst, a.Drives.Fatigue, a.Drives.Bladder, a.Drives.Social, a.Drives.Mood, a.Drives.SuppressionBudget),
         a.CurrentAction, a.CurrentReason,
         new LlmConfigDto(a.LlmConfig.Model, a.LlmConfig.BaseUrl, a.LlmConfig.HasApiKey ? "***" : null),
         a.Drives.Social < 0.65f,
         new PositionDto(a.Position.X, a.Position.Y),
         a.Destination.HasValue ? new PositionDto(a.Destination.Value.X, a.Destination.Value.Y) : null,
-        a.NavState.ToString()
+        a.NavState.ToString(),
+        a.Drives.SuppressionBudget <= 0f
     );
 }
 
-public record DrivesDto(float Hunger, float Thirst, float Fatigue, float Bladder, float Social, float Mood);
+public record DrivesDto(float Hunger, float Thirst, float Fatigue, float Bladder, float Social, float Mood, float SuppressionBudget);
 public record LlmConfigDto(string Model, string BaseUrl, string? ApiKey);
 public record PositionDto(float X, float Y);
