@@ -14,6 +14,7 @@ public class SimulationService
     private readonly Random _rng = new();
 
     private bool   _isPaused        = false;
+    private bool   _tickInProgress  = false;
     private int    _tickCount       = 0;
     private double _speedMultiplier = 1.0;
     private Timer? _autoTimer;
@@ -114,10 +115,7 @@ public class SimulationService
     }
 
     // Explicit step — always advances one tick regardless of pause state
-    public void Step()
-    {
-        lock (_lock) AdvanceTick();
-    }
+    public void Step() => AdvanceTickAsync().GetAwaiter().GetResult();
 
     public void StartAutoAdvance()
     {
@@ -178,67 +176,106 @@ public class SimulationService
     private void RestartTimer()
     {
         var intervalMs = (int)(BaseTickMs / _speedMultiplier);
-        _autoTimer ??= new Timer(_ => { lock (_lock) { if (!_isPaused) AdvanceTick(); } });
+        _autoTimer ??= new Timer(_ =>
+        {
+            lock (_lock) { if (_isPaused) return; }
+            _ = AdvanceTickAsync();
+        });
         _autoTimer.Change(intervalMs, intervalMs);
     }
 
-    private void AdvanceTick()
+    private async Task AdvanceTickAsync()
     {
-        _tickCount++;
-        var now = DateTimeOffset.UtcNow;
+        // ── Phase 1+2+snapshot: inside lock, then release before LLM calls ────
+        DateTimeOffset now;
+        HashSet<string> hadInteractionLastTick;
+        HashSet<string> idleAtTickStart;
+        List<(Agent Agent, BodyState DrivesSnapshot, string? Persona, string NavState)> snapshots;
 
-        // ── Phase 1: Consume prior-tick social interaction flags ───────────────
-        var hadInteractionLastTick = _agents
-            .Where(a => a.HadSocialInteractionLastTick)
-            .Select(a => a.Id)
-            .ToHashSet();
-        foreach (var a in _agents) a.HadSocialInteractionLastTick = false;
+        lock (_lock)
+        {
+            // Guard: skip if another tick is already running (timer fired while Ollama was in flight)
+            if (_tickInProgress) return;
+            _tickInProgress = true;
 
-        // ── Phase 2: Drive tick ───────────────────────────────────────────────
-        foreach (var agent in _agents)
-            DriveSystem.Tick(agent.Drives, hadInteractionLastTick.Contains(agent.Id));
+            _tickCount++;
+            now = DateTimeOffset.UtcNow;
 
-        // Snapshot which agents were Idle before decision-making runs.
-        // Agents transition to Committed(wander) during the decision phase, which would
-        // incorrectly mark them as unavailable for seeking within the same tick.
-        var idleAtTickStart = _agents
-            .Where(a => a.NavState == NavigationState.Idle)
-            .Select(a => a.Id)
-            .ToHashSet();
+            // Phase 1: Consume prior-tick social interaction flags
+            hadInteractionLastTick = _agents
+                .Where(a => a.HadSocialInteractionLastTick)
+                .Select(a => a.Id)
+                .ToHashSet();
+            foreach (var a in _agents) a.HadSocialInteractionLastTick = false;
 
-        // ── Phase 3: Decision making → navigation setup ───────────────────────
-        foreach (var agent in _agents)
+            // Phase 2: Drive tick
+            foreach (var agent in _agents)
+                DriveSystem.Tick(agent.Drives, hadInteractionLastTick.Contains(agent.Id));
+
+            // Snapshot which agents were Idle before decision-making runs.
+            // Agents transition to Committed(wander) during the decision phase, which would
+            // incorrectly mark them as unavailable for seeking within the same tick.
+            idleAtTickStart = _agents
+                .Where(a => a.NavState == NavigationState.Idle)
+                .Select(a => a.Id)
+                .ToHashSet();
+
+            // Snapshot drives + context for each agent.
+            // Lock is released before LLM calls — snapshot isolates them from concurrent mutations.
+            snapshots = _agents
+                .Select(a => (a, a.Drives.Snapshot(), a.Persona, a.NavState.ToString()))
+                .ToList();
+        }
+
+        // ── Phase 3: Decisions run in parallel, lock NOT held ─────────────────
+        var decisions = await Task.WhenAll(snapshots.Select(async s =>
         {
             try
             {
-                // PROTOTYPE: .GetResult() holds _lock for the LLM HTTP call duration.
-                // Acceptable for rule-based; Ollama will block. See existing prototype note.
-                var (action, reason) = agent.DecisionMaker
-                    .ChooseAsync(agent.Drives, ActionCatalog.All,
-                        agent.Persona, agent.NavState.ToString())
-                    .GetAwaiter().GetResult();
-
-                agent.CurrentAction = action.Id;
-                agent.CurrentReason = reason;
-
-                UpdateNavigation(agent, action, idleAtTickStart);
-
-                agent.Thoughts.Add(new ThoughtEntry(now,
-                    $"{agent.CurrentAction}: {agent.CurrentReason} | nav={agent.NavState}"));
-                if (agent.Thoughts.Count > 200) agent.Thoughts.RemoveAt(0);
+                var (action, reason) = await s.Agent.DecisionMaker.ChooseAsync(
+                    s.DrivesSnapshot, ActionCatalog.All, s.Persona, s.NavState);
+                return (s.Agent, Action: action, Reason: reason, Error: (string?)null);
             }
             catch (Exception ex)
             {
-                agent.Thoughts.Add(new ThoughtEntry(now, $"[error] {ex.Message}"));
+                return (s.Agent, Action: (GameAction?)null, Reason: (string?)null, Error: ex.Message);
+            }
+        }));
+
+        // ── Apply results + Phase 4+5: back inside lock ────────────────────────
+        lock (_lock)
+        {
+            try
+            {
+                foreach (var d in decisions)
+                {
+                    if (d.Error != null)
+                    {
+                        d.Agent.Thoughts.Add(new ThoughtEntry(now, $"[error] {d.Error}"));
+                        if (d.Agent.Thoughts.Count > 200) d.Agent.Thoughts.RemoveAt(0);
+                        continue;
+                    }
+
+                    d.Agent.CurrentAction = d.Action!.Id;
+                    d.Agent.CurrentReason = d.Reason!;
+                    UpdateNavigation(d.Agent, d.Action, idleAtTickStart);
+                    d.Agent.Thoughts.Add(new ThoughtEntry(now,
+                        $"{d.Agent.CurrentAction}: {d.Agent.CurrentReason} | nav={d.Agent.NavState}"));
+                    if (d.Agent.Thoughts.Count > 200) d.Agent.Thoughts.RemoveAt(0);
+                }
+
+                // Phase 4: Movement resolution
+                foreach (var agent in _agents)
+                    ResolveMovement(agent, now, idleAtTickStart);
+
+                // Phase 5: Background chatter
+                MaybeGenerateConversations(now);
+            }
+            finally
+            {
+                _tickInProgress = false;
             }
         }
-
-        // ── Phase 4: Movement resolution ──────────────────────────────────────
-        foreach (var agent in _agents)
-            ResolveMovement(agent, now, idleAtTickStart);
-
-        // ── Phase 5: Background chatter ───────────────────────────────────────
-        MaybeGenerateConversations(now);
     }
 
     /// <summary>
