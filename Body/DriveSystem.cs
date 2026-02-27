@@ -6,8 +6,8 @@ namespace SquishySim.Body;
 /// </summary>
 public static class DriveSystem
 {
-    private const float HungerRate  = 0.018f;  // critical in ~56 ticks
-    private const float ThirstRate  = 0.025f;  // critical in ~40 ticks
+    private const float HungerRate  = 0.012f;  // critical in ~83 ticks (reduced from 0.018 to account for Phase 3.5 travel time)
+    private const float ThirstRate  = 0.015f;  // critical in ~67 ticks (reduced from 0.025 — was 2x other drives, causing constant hopping)
     private const float FatigueRate = 0.012f;  // critical in ~83 ticks
 
     // Social drive constants
