@@ -39,6 +39,19 @@ public class BodyState
         _       => "low"
     };
 
+    /// <summary>Returns a new BodyState with all field values copied from this instance.</summary>
+    public BodyState Snapshot() => new BodyState
+    {
+        Hunger            = Hunger,
+        Thirst            = Thirst,
+        Fatigue           = Fatigue,
+        Bladder           = Bladder,
+        Social            = Social,
+        Mood              = Mood,
+        SuppressionBudget = SuppressionBudget,
+        SnappedAt         = SnappedAt,
+    };
+
     public void Clamp()
     {
         Hunger            = Math.Clamp(Hunger,            0f, 1f);
