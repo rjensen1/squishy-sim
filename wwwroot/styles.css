@@ -54,6 +54,22 @@ h3 { color: #9cdcfe; font-size: 0.85em; text-transform: uppercase; letter-spacin
 #llm-section input { background: #3e3e42; border: 1px solid #555; color: #d4d4d4; padding: 3px 6px; font-family: monospace; font-size: 0.85em; width: 240px; margin-left: 6px; }
 #btn-save-llm { margin-top: 6px; background: #094771; border: 1px solid #4ec9b0; color: #4ec9b0; padding: 3px 12px; cursor: pointer; border-radius: 3px; font-family: monospace; font-size: 0.8em; }
 
+/* Action + map side-by-side row */
+#action-map-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin: 14px 0;
+}
+#status-section { flex: 1; }
+#map-section { flex-shrink: 0; }
+#sim-map {
+  background: #1a1a1a;
+  border: 1px solid #3e3e42;
+  border-radius: 3px;
+  display: block;
+}
+
 /* Thought log / messages — side-by-side layout */
 #thoughts-messages-row {
   display: flex;
