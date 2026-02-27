@@ -25,3 +25,6 @@ var sim = app.Services.GetRequiredService<SimulationService>();
 sim.StartAutoAdvance();
 
 app.Run();
+
+// Expose Program class to WebApplicationFactory<Program> in test project
+public partial class Program { }
