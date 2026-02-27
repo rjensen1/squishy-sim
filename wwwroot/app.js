@@ -1,8 +1,8 @@
 // PROTOTYPE: SquishySim web client
 'use strict';
 
-const DRIVES = ['hunger', 'thirst', 'fatigue', 'bladder', 'social', 'mood'];
-const DEFAULT_DRIVES = { hunger: 0.10, thirst: 0.10, fatigue: 0.10, bladder: 0.00, social: 0.10, mood: 0.70 };
+const DRIVES = ['hunger', 'thirst', 'fatigue', 'bladder', 'social', 'mood', 'suppressionBudget'];
+const DEFAULT_DRIVES = { hunger: 0.10, thirst: 0.10, fatigue: 0.10, bladder: 0.00, social: 0.10, mood: 0.70, suppressionBudget: 1.0 };
 
 // ── SVG map constants ─────────────────────────────────────────────────────────
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -114,6 +114,8 @@ async function refreshAgentDetail() {
     document.getElementById('current-action').textContent = agent.currentAction;
     document.getElementById('current-reason').textContent = agent.currentReason;
     document.getElementById('spatial-status').textContent = agent.navState ?? '';
+    const snapEl = document.getElementById('snap-status');
+    if (snapEl) { snapEl.textContent = agent.isSnapped ? '⚠ SNAPPED' : ''; }
     document.getElementById('llm-model').value = agent.llmConfig.model;
     document.getElementById('llm-url').value   = agent.llmConfig.baseUrl;
     await refreshThoughts();
@@ -159,6 +161,9 @@ function updateDriveUI(drive, val) {
     bar.style.width = `${pct}%`;
     if (drive === 'mood') {
         bar.className = 'drive-bar-fill' + (val < 0.15 ? ' crit' : val < 0.35 ? ' warn' : '');
+    } else if (drive === 'suppressionBudget') {
+        // Inverted: tiers map to spec thresholds (high > 0.50, medium 0.25–0.50, low/snap <= 0.25)
+        bar.className = 'drive-bar-fill' + (val <= 0.25 ? ' crit' : val <= 0.50 ? ' warn' : '');
     } else {
         bar.className = 'drive-bar-fill' + (val > 0.85 ? ' crit' : val > 0.65 ? ' warn' : '');
     }
@@ -309,10 +314,21 @@ function renderSimMap(agents) {
         let tip = null;
         if (a.drives) {
             const d = a.drives;
-            tip = `${a.name}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}`;
+            const budgetLabel = d.suppressionBudget <= 0.25 ? 'LOW' : d.suppressionBudget <= 0.50 ? 'MED' : 'OK';
+            tip = `${a.name}${a.isSnapped ? ' [SNAPPED]' : ''}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}  budget: ${budgetLabel}`;
             circle.appendChild(svgTitle(tip));
         }
         mapDynamic.appendChild(circle);
+
+        // Snap indicator: red outer ring when agent is snapped
+        if (a.isSnapped) {
+            const snapRing = svgEl('circle', {
+                cx: a.position.x, cy: a.position.y,
+                r: parseFloat(r) + 0.25,
+                fill: 'none', stroke: '#f44747', 'stroke-width': '0.2',
+            });
+            mapDynamic.appendChild(snapRing);
+        }
 
         // Initial of agent name as label — also carries tooltip so hovering the letter works
         const label = a.name ? a.name[0] : a.id[0].toUpperCase();

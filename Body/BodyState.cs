@@ -14,6 +14,9 @@ public class BodyState
     public float Social  { get; set; } = 0.10f;  // 0=satisfied, 1=isolated
     public float Mood    { get; set; } = 0.70f;
 
+    public float    SuppressionBudget { get; set; } = 1.0f;  // 1.0=full capacity, 0.0=depleted/snapped
+    public DateTime? SnappedAt        { get; set; }          // set on first snap, cleared on recovery above 0.25f
+
     public string HungerLabel  => DriveLabel(Hunger);
     public string ThirstLabel  => DriveLabel(Thirst);
     public string FatigueLabel => DriveLabel(Fatigue);
@@ -38,11 +41,12 @@ public class BodyState
 
     public void Clamp()
     {
-        Hunger  = Math.Clamp(Hunger,  0f, 1f);
-        Thirst  = Math.Clamp(Thirst,  0f, 1f);
-        Fatigue = Math.Clamp(Fatigue, 0f, 1f);
-        Bladder = Math.Clamp(Bladder, 0f, 1f);
-        Social  = Math.Clamp(Social,  0f, 1f);
-        Mood    = Math.Clamp(Mood,    0f, 1f);
+        Hunger            = Math.Clamp(Hunger,            0f, 1f);
+        Thirst            = Math.Clamp(Thirst,            0f, 1f);
+        Fatigue           = Math.Clamp(Fatigue,           0f, 1f);
+        Bladder           = Math.Clamp(Bladder,           0f, 1f);
+        Social            = Math.Clamp(Social,            0f, 1f);
+        Mood              = Math.Clamp(Mood,              0f, 1f);
+        SuppressionBudget = Math.Clamp(SuppressionBudget, 0f, 1f);
     }
 }

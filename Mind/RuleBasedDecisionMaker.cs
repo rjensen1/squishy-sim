@@ -20,7 +20,7 @@ public class RuleBasedDecisionMaker : IDecisionMaker
     public Task<(GameAction action, string reason)> ChooseAsync(
         BodyState state, IReadOnlyList<GameAction> actions)
     {
-        float mod = state.Social < SocialTriggerThreshold ? ContextModifier : 0f;
+        float mod = ComputeModifier(state);
 
         if (state.Bladder > Math.Min(0.80f + mod, 1.0f))
             return Done("use_toilet", "bladder is urgent");
@@ -41,6 +41,25 @@ public class RuleBasedDecisionMaker : IDecisionMaker
             return Done("wander", "mood is low — needs stimulation");
 
         return Done("wander", "all needs met");
+    }
+
+    /// <summary>
+    /// Four-tier suppression modifier based on SuppressionBudget.
+    /// Pure function — reads state, returns float, no side effects.
+    /// </summary>
+    private static float ComputeModifier(BodyState state)
+    {
+        if (state.SuppressionBudget <= 0f)
+            return 0f;  // snap — no suppression available
+
+        if (state.SuppressionBudget <= 0.25f)
+            return 0f;  // low — budget present but suppression capacity gone
+
+        if (state.SuppressionBudget <= 0.50f)
+            return ContextModifier * 0.50f;  // medium — partial suppression
+
+        // high — full modifier, check social state as before
+        return state.Social < SocialTriggerThreshold ? ContextModifier : 0f;
     }
 
     private static Task<(GameAction action, string reason)> Done(string id, string reason)
