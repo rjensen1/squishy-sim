@@ -15,10 +15,10 @@ const AGENT_COLORS = {
 };
 
 const RESOURCES = [
-    { x: 5,  y: 5,  fill: '#81c784', label: 'F' },
-    { x: 15, y: 5,  fill: '#4fc3f7', label: 'W' },
-    { x: 15, y: 15, fill: '#bcaaa4', label: 'T' },
-    { x: 5,  y: 15, fill: '#ffb74d', label: 'S' },
+    { x: 5,  y: 5,  fill: '#81c784', label: 'F', name: 'Food' },
+    { x: 15, y: 5,  fill: '#4fc3f7', label: 'W', name: 'Water' },
+    { x: 15, y: 15, fill: '#bcaaa4', label: 'T', name: 'Latrine' },
+    { x: 5,  y: 15, fill: '#ffb74d', label: 'S', name: 'Shelter' },
 ];
 
 let selectedAgentId = null;
@@ -232,6 +232,12 @@ function svgEl(tag, attrs) {
     return el;
 }
 
+function svgTitle(text) {
+    const t = document.createElementNS(SVG_NS, 'title');
+    t.textContent = text;
+    return t;
+}
+
 // Render static layer once on load: grid lines + resource icons
 function initMapStatic() {
     const g = document.getElementById('map-static');
@@ -243,9 +249,11 @@ function initMapStatic() {
         g.appendChild(svgEl('line', { x1: 0, y1: i, x2: 20, y2: i, stroke: '#2a2a2a', 'stroke-width': '0.1' }));
     }
 
-    // Resource icons: 1×1 square centered on position, with 1-char label
+    // Resource icons: 1×1 square centered on position, with 1-char label + tooltip
     RESOURCES.forEach(r => {
-        g.appendChild(svgEl('rect', { x: r.x - 0.5, y: r.y - 0.5, width: 1, height: 1, fill: r.fill }));
+        const rect = svgEl('rect', { x: r.x - 0.5, y: r.y - 0.5, width: 1, height: 1, fill: r.fill });
+        rect.appendChild(svgTitle(r.name));
+        g.appendChild(rect);
         const t = svgEl('text', {
             x: r.x, y: r.y,
             'font-size': '0.8', fill: '#1a1a1a',
@@ -296,9 +304,16 @@ function renderSimMap(agents) {
 
         const circleAttrs = { cx: a.position.x, cy: a.position.y, r, fill: color };
         if (isSelected) { circleAttrs.stroke = '#ffffff'; circleAttrs['stroke-width'] = '0.15'; }
-        mapDynamic.appendChild(svgEl('circle', circleAttrs));
+        const circle = svgEl('circle', circleAttrs);
+        let tip = null;
+        if (a.drives) {
+            const d = a.drives;
+            tip = `${a.name}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}`;
+            circle.appendChild(svgTitle(tip));
+        }
+        mapDynamic.appendChild(circle);
 
-        // Initial of agent name as label
+        // Initial of agent name as label — also carries tooltip so hovering the letter works
         const label = a.name ? a.name[0] : a.id[0].toUpperCase();
         const t = svgEl('text', {
             x: a.position.x, y: a.position.y,
@@ -306,6 +321,7 @@ function renderSimMap(agents) {
             'text-anchor': 'middle', 'dominant-baseline': 'central',
         });
         t.textContent = label;
+        if (tip) t.appendChild(svgTitle(tip));
         mapDynamic.appendChild(t);
     });
 }
