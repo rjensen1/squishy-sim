@@ -9,5 +9,7 @@ public interface IDecisionMaker
 
     Task<(GameAction action, string reason)> ChooseAsync(
         BodyState state,
-        IReadOnlyList<GameAction> actions);
+        IReadOnlyList<GameAction> actions,
+        string? persona = null,
+        string? navState = null);
 }

@@ -15,10 +15,20 @@ const AGENT_COLORS = {
 };
 
 const RESOURCES = [
-    { x: 5,  y: 5,  fill: '#81c784', label: 'F', name: 'Food' },
-    { x: 15, y: 5,  fill: '#4fc3f7', label: 'W', name: 'Water' },
-    { x: 15, y: 15, fill: '#bcaaa4', label: 'T', name: 'Latrine' },
-    { x: 5,  y: 15, fill: '#ffb74d', label: 'S', name: 'Shelter' },
+    { x: 5,  y: 5,  name: 'Food',    elements: [
+        { tag: 'circle',  attrs: { cx: 5,     cy: 5,     r: 0.38, fill: 'none', stroke: '#81c784', 'stroke-width': 0.10 } },
+        { tag: 'circle',  attrs: { cx: 5,     cy: 5,     r: 0.15, fill: '#81c784' } },
+    ]},
+    { x: 15, y: 5,  name: 'Water',   elements: [
+        { tag: 'path',    attrs: { d: 'M15,4.55 L15.35,5.05 Q15.35,5.42 15,5.42 Q14.65,5.42 14.65,5.05 Z', fill: '#4fc3f7' } },
+    ]},
+    { x: 15, y: 15, name: 'Latrine', elements: [
+        { tag: 'rect',    attrs: { x: 14.88, y: 14.62, width: 0.24, height: 0.76, rx: 0.04, fill: '#bcaaa4' } },
+        { tag: 'rect',    attrs: { x: 14.62, y: 14.88, width: 0.76, height: 0.24, rx: 0.04, fill: '#bcaaa4' } },
+    ]},
+    { x: 5,  y: 15, name: 'Shelter', elements: [
+        { tag: 'polygon', attrs: { points: '5,14.55 5.42,15.42 4.58,15.42', fill: '#ffb74d' } },
+    ]},
 ];
 
 let selectedAgentId = null;
@@ -254,19 +264,13 @@ function initMapStatic() {
         g.appendChild(svgEl('line', { x1: 0, y1: i, x2: 20, y2: i, stroke: '#2a2a2a', 'stroke-width': '0.1' }));
     }
 
-    // Resource icons: 1×1 square centered on position, with 1-char label + tooltip
+    // Resource icons: distinct SVG shapes per resource type, with tooltip on first element
     RESOURCES.forEach(r => {
-        const rect = svgEl('rect', { x: r.x - 0.5, y: r.y - 0.5, width: 1, height: 1, fill: r.fill });
-        rect.appendChild(svgTitle(r.name));
-        g.appendChild(rect);
-        const t = svgEl('text', {
-            x: r.x, y: r.y,
-            'font-size': '0.8', fill: '#1a1a1a',
-            'text-anchor': 'middle', 'dominant-baseline': 'central',
-            cursor: 'default',
+        r.elements.forEach((e, i) => {
+            const el = svgEl(e.tag, e.attrs);
+            if (i === 0) el.appendChild(svgTitle(r.name));
+            g.appendChild(el);
         });
-        t.textContent = r.label;
-        g.appendChild(t);
     });
 }
 

@@ -45,18 +45,19 @@ public class SimulationService
         // PROTOTYPE: Seed three agents with rule-based decision makers at spread starting positions
         var seeds = new[]
         {
-            ("alice",   "Alice",   ( 3f, 10f)),
-            ("bob",     "Bob",     (10f,  3f)),
-            ("charlie", "Charlie", (17f, 10f)),
+            ("alice",   "Alice",   ( 3f, 10f), "You tend to hold your physical needs longer than you should to avoid disrupting conversation. You're apologetic when you have to leave."),
+            ("bob",     "Bob",     (10f,  3f), "You act on your drives early and practically. You don't suppress well, but you also don't let things build up. Blunt about what you need."),
+            ("charlie", "Charlie", (17f, 10f), "You're stoic — you can hold competing drives longer than most. But when you finally break, it hits harder than you expected."),
         };
 
-        foreach (var (id, name, pos) in seeds)
+        foreach (var (id, name, pos, persona) in seeds)
         {
             _agents.Add(new Agent
             {
                 Id            = id,
                 Name          = name,
                 Position      = pos,
+                Persona       = persona,
                 DecisionMaker = new RuleBasedDecisionMaker()
             });
         }
@@ -213,7 +214,8 @@ public class SimulationService
                 // PROTOTYPE: .GetResult() holds _lock for the LLM HTTP call duration.
                 // Acceptable for rule-based; Ollama will block. See existing prototype note.
                 var (action, reason) = agent.DecisionMaker
-                    .ChooseAsync(agent.Drives, ActionCatalog.All)
+                    .ChooseAsync(agent.Drives, ActionCatalog.All,
+                        agent.Persona, agent.NavState.ToString())
                     .GetAwaiter().GetResult();
 
                 agent.CurrentAction = action.Id;

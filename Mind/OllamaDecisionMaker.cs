@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using SquishySim.Actions;
@@ -25,9 +26,10 @@ public class OllamaDecisionMaker : IDecisionMaker
     }
 
     public async Task<(GameAction action, string reason)> ChooseAsync(
-        BodyState state, IReadOnlyList<GameAction> actions)
+        BodyState state, IReadOnlyList<GameAction> actions,
+        string? persona = null, string? navState = null)
     {
-        var prompt = PromptBuilder.Build(state, actions);
+        var prompt = PromptBuilder.Build(state, actions, persona, navState);
 
         var requestJson = JsonSerializer.Serialize(new
         {
@@ -37,7 +39,10 @@ public class OllamaDecisionMaker : IDecisionMaker
         });
 
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+        var sw = Stopwatch.StartNew();
         var response = await _http.PostAsync($"{_baseUrl}/api/generate", content);
+        sw.Stop();
+        Console.WriteLine($"[LLM] {_model} inference: {sw.ElapsedMilliseconds}ms");
         response.EnsureSuccessStatusCode();
 
         var responseText = await response.Content.ReadAsStringAsync();

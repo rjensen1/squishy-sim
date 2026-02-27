@@ -18,7 +18,8 @@ public class RuleBasedDecisionMaker : IDecisionMaker
     private const float SocialTriggerThreshold = 0.65f;
 
     public Task<(GameAction action, string reason)> ChooseAsync(
-        BodyState state, IReadOnlyList<GameAction> actions)
+        BodyState state, IReadOnlyList<GameAction> actions,
+        string? persona = null, string? navState = null)
     {
         float mod = ComputeModifier(state);
 
