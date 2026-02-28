@@ -274,6 +274,19 @@ function initMapStatic() {
     });
 }
 
+// Blend a hex color toward #888888 (gray) by factor [0,1].
+// factor=0 → original color; factor=1 → full gray.
+function blendTowardGray(hex, factor) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const gray = 136;  // 0x88
+    const br = Math.round(r + (gray - r) * factor);
+    const bg = Math.round(g + (gray - g) * factor);
+    const bb = Math.round(b + (gray - b) * factor);
+    return `#${br.toString(16).padStart(2, '0')}${bg.toString(16).padStart(2, '0')}${bb.toString(16).padStart(2, '0')}`;
+}
+
 // Redrawn each poll: nav state lines (first) then agent circles (on top)
 function renderSimMap(agents) {
     const mapDynamic = document.getElementById('map-dynamic');
@@ -308,7 +321,11 @@ function renderSimMap(agents) {
     // Draw agent circles on top of lines
     agents.forEach(a => {
         if (!a.position) return;
-        const color = AGENT_COLORS[a.id] ?? '#888888';
+        const baseColor = AGENT_COLORS[a.id] ?? '#888888';
+        // Desaturate toward gray proportional to isolation (behavioral coherence degradation).
+        // Visually distinct from snap (red ring): isolation is chronic/gradual, snap is acute.
+        const isolationFactor = a.behavioralCoherence != null ? Math.max(0, 1.0 - a.behavioralCoherence) : 0;
+        const color = isolationFactor > 0 ? blendTowardGray(baseColor, isolationFactor) : baseColor;
         const isSelected = a.id === selectedAgentId;
         const r = isSelected ? '0.8' : '0.65';
 
@@ -319,7 +336,11 @@ function renderSimMap(agents) {
         if (a.drives) {
             const d = a.drives;
             const budgetLabel = d.suppressionBudget <= 0.25 ? 'LOW' : d.suppressionBudget <= 0.50 ? 'MED' : 'OK';
-            tip = `${a.name}${a.isSnapped ? ' [SNAPPED]' : ''}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}  budget: ${budgetLabel}`;
+            const driftLabel = a.personaDriftFactor != null ? a.personaDriftFactor.toFixed(2) : '?';
+            const coherenceLabel = a.behavioralCoherence != null ? a.behavioralCoherence.toFixed(2) : '?';
+            const snappedTag = a.isSnapped ? ' [SNAPPED]' : '';
+            const driftTag = a.personaDriftFactor > 0.4 ? ' [DRIFTED]' : '';
+            tip = `${a.name}${snappedTag}${driftTag}\nhunger: ${d.hunger.toFixed(2)}  thirst: ${d.thirst.toFixed(2)}  fatigue: ${d.fatigue.toFixed(2)}\nbladder: ${d.bladder.toFixed(2)}  social: ${d.social.toFixed(2)}  mood: ${d.mood.toFixed(2)}\nnav: ${a.navState ?? ''}  budget: ${budgetLabel}\ncoherence: ${coherenceLabel}  drift: ${driftLabel}`;
             circle.appendChild(svgTitle(tip));
         }
         mapDynamic.appendChild(circle);

@@ -212,6 +212,10 @@ public class SimulationService
             foreach (var agent in _agents)
                 DriveSystem.Tick(agent.Drives, hadInteractionLastTick.Contains(agent.Id));
 
+            // Phase 2b: Cognitive drift tick (mind-layer; different time constant than drives)
+            foreach (var agent in _agents)
+                CognitiveDriftSystem.Tick(agent);
+
             // Snapshot which agents were Idle before decision-making runs.
             // Agents transition to Committed(wander) during the decision phase, which would
             // incorrectly mark them as unavailable for seeking within the same tick.
@@ -221,9 +225,15 @@ public class SimulationService
                 .ToHashSet();
 
             // Snapshot drives + context for each agent.
+            // Apply coherence degradation to the snapshot so decision makers see compressed urgencies
+            // under isolation — both rule-based and Ollama receive the same degraded view.
             // Lock is released before LLM calls — snapshot isolates them from concurrent mutations.
             snapshots = _agents
-                .Select(a => (a, a.Drives.Snapshot(), a.Persona, a.NavState.ToString()))
+                .Select(a => (
+                    a,
+                    CoherenceDegradationSystem.ApplyToSnapshot(a.Drives.Snapshot()),
+                    CognitiveDriftSystem.BuildDriftedPersona(a.Persona, a.PersonaDriftFactor),
+                    a.NavState.ToString()))
                 .ToList();
         }
 
@@ -260,7 +270,7 @@ public class SimulationService
                     d.Agent.CurrentReason = d.Reason!;
                     UpdateNavigation(d.Agent, d.Action, idleAtTickStart);
                     d.Agent.Thoughts.Add(new ThoughtEntry(now,
-                        $"{d.Agent.CurrentAction}: {d.Agent.CurrentReason} | nav={d.Agent.NavState}"));
+                        $"{d.Agent.CurrentAction}: {d.Agent.CurrentReason} | nav={d.Agent.NavState} | drift={d.Agent.PersonaDriftFactor:0.00}"));
                     if (d.Agent.Thoughts.Count > 200) d.Agent.Thoughts.RemoveAt(0);
                 }
 

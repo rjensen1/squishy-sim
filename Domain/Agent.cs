@@ -25,6 +25,11 @@ public class Agent
     // consumed by DriveSystem.Tick the following tick to apply social satisfaction.
     public bool HadSocialInteractionLastTick { get; set; } = false;
 
+    // Cognitive drift: accumulates under sustained isolation, recovers with social contact.
+    // 0.0 = fully aligned with base persona; 1.0 = fully drifted.
+    // Mind-layer state — distinct from BodyState. Ticked by CognitiveDriftSystem.
+    public float PersonaDriftFactor { get; set; } = 0.0f;
+
     // ── Spatial state ─────────────────────────────────────────────────────────
 
     public (float X, float Y)  Position    { get; set; } = (10f, 10f);
