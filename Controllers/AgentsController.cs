@@ -1,5 +1,6 @@
 // PROTOTYPE: Agents REST API
 using Microsoft.AspNetCore.Mvc;
+using SquishySim.Body;
 using SquishySim.Services;
 
 namespace SquishySim.Controllers;
@@ -95,7 +96,9 @@ public record AgentDto(
     PositionDto Position,
     PositionDto? Destination,
     string NavState,
-    bool IsSnapped)
+    bool IsSnapped,
+    float PersonaDriftFactor,
+    float BehavioralCoherence)
 {
     public static AgentDto From(SquishySim.Domain.Agent a) => new(
         a.Id, a.Name,
@@ -106,7 +109,9 @@ public record AgentDto(
         new PositionDto(a.Position.X, a.Position.Y),
         a.Destination.HasValue ? new PositionDto(a.Destination.Value.X, a.Destination.Value.Y) : null,
         a.NavState.ToString(),
-        a.Drives.SuppressionBudget <= 0f
+        a.Drives.SuppressionBudget <= 0f,
+        a.PersonaDriftFactor,
+        CoherenceDegradationSystem.BehavioralCoherence(a.Drives.Social)
     );
 }
 

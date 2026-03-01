@@ -17,14 +17,15 @@ public class SimulationServiceSpatialTests
         var alice = sim.GetAgent("alice")!;
 
         // Place alice far from food; set hunger high so decision maker picks eat_food.
-        // Social=0.70 (above SocialTriggerThreshold=0.65) disables Phase 3 context modifier
-        // so hunger threshold stays at 0.70 and 0.80 reliably triggers eat_food.
+        // Social=0.0 + SuppressionBudget=0.0 (snapped): no context modifier AND no coherence
+        // compression (Social below onset threshold 0.3). Hunger=0.80 > raw threshold 0.70 → eat_food.
         alice.Position  = (0f, 0f);
-        alice.Drives.Hunger  = 0.80f;   // above 0.70f threshold → eat_food
+        alice.Drives.Hunger  = 0.80f;   // above 0.70f raw threshold → eat_food
         alice.Drives.Thirst  = 0.10f;
         alice.Drives.Fatigue = 0.10f;
         alice.Drives.Bladder = 0.10f;
-        alice.Drives.Social  = 0.70f;   // above SocialTriggerThreshold → context modifier inactive
+        alice.Drives.Social  = 0.0f;    // below coherence onset threshold → no drive compression
+        alice.Drives.SuppressionBudget = 0.0f;  // snapped → no context modifier
 
         sim.Step();
 
@@ -46,16 +47,17 @@ public class SimulationServiceSpatialTests
         var alice = sim.GetAgent("alice")!;
 
         // Place alice within interact radius of food station (5,5).
-        // Social=0.70 disables Phase 3 context modifier so hunger threshold stays at 0.70
-        // and eat_food is chosen; CurrentAction must be "eat_food" for ApplyArrivalEffects to work.
+        // Social=0.0 + SuppressionBudget=0.0 (snapped): no context modifier AND no coherence
+        // compression (Social below onset threshold 0.3). Hunger=0.80 > raw threshold 0.70 → eat_food.
         alice.Position    = (5f, 5f - ResourceInteractRadius + 0.1f);  // just inside radius
         alice.NavState    = NavigationState.Committed;
         alice.Destination = (5f, 5f);
-        alice.Drives.Hunger  = 0.80f;   // hunger high → eat_food chosen
+        alice.Drives.Hunger  = 0.80f;   // above 0.70f raw threshold → eat_food chosen
         alice.Drives.Thirst  = 0.10f;
         alice.Drives.Fatigue = 0.10f;
         alice.Drives.Bladder = 0.10f;
-        alice.Drives.Social  = 0.70f;   // above SocialTriggerThreshold → context modifier inactive
+        alice.Drives.Social  = 0.0f;    // below coherence onset threshold → no drive compression
+        alice.Drives.SuppressionBudget = 0.0f;  // snapped → no context modifier
 
         var hungerBefore = alice.Drives.Hunger;
 
@@ -76,16 +78,17 @@ public class SimulationServiceSpatialTests
         var alice = sim.GetAgent("alice")!;
 
         // Alice is currently navigating to water (thirst was high, bladder was low).
-        // Social=0.70 disables Phase 3 context modifier so bladder threshold stays at 0.80
-        // and 0.85 reliably triggers use_toilet preemption (with modifier active, threshold=1.0).
+        // Social=0.0 + SuppressionBudget=0.0 (snapped): no context modifier AND no coherence
+        // compression. Bladder=0.85 > raw threshold 0.80 → use_toilet preempts water navigation.
         alice.Position    = (0f, 0f);
         alice.NavState    = NavigationState.Committed;
         alice.Destination = (15f, 5f);   // water station
         alice.Drives.Thirst  = 0.75f;
-        alice.Drives.Bladder = 0.85f;    // bladder above threshold → use_toilet takes priority
+        alice.Drives.Bladder = 0.85f;    // above 0.80 raw threshold → use_toilet takes priority
         alice.Drives.Hunger  = 0.10f;
         alice.Drives.Fatigue = 0.10f;
-        alice.Drives.Social  = 0.70f;    // above SocialTriggerThreshold → context modifier inactive
+        alice.Drives.Social  = 0.0f;    // below coherence onset threshold → no drive compression
+        alice.Drives.SuppressionBudget = 0.0f;  // snapped → no context modifier
 
         sim.Step();
 
