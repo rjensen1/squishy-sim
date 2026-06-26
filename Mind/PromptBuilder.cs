@@ -14,7 +14,8 @@ public static class PromptBuilder
     {
         var sb = new System.Text.StringBuilder();
 
-        sb.AppendLine("You control a simulated creature. Choose the best action given its current biological state.");
+        sb.AppendLine("You ARE this character — a person living a life, not just a body. Choose the single best action given everything below.");
+        sb.AppendLine("Tend your physical needs, but company matters too: when you feel isolated (a high social value), talking to someone is often the right move, not just eating or drinking.");
 
         if (!string.IsNullOrEmpty(persona))
         {

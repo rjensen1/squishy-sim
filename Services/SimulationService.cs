@@ -30,6 +30,12 @@ public class SimulationService
     private const float SocialRange            = 2.5f;
     private const float PersonalSpaceRadius    = 1.0f;
 
+    // LLM agents get the full menu minus "socialize": for a model, "talk" supersedes it
+    // (talk names a target and produces an actual spoken line; socialize is the rule-based
+    // auto-seek primitive with no words). Rule-based agents ignore the passed menu entirely.
+    private static readonly IReadOnlyList<GameAction> LlmActionMenu =
+        ActionCatalog.All.Where(a => a.Id != "socialize").ToList();
+
     // Fixed resource positions mapped by action ID
     private static readonly Dictionary<string, ResourceLocation> ResourcesByAction = new()
     {
@@ -162,10 +168,15 @@ public class SimulationService
             agent.LlmConfig.BaseUrl = baseUrl;
             if (apiKey != null) agent.LlmConfig.SetApiKey(apiKey);
 
-            // PROTOTYPE: Only Ollama and rule-based supported
-            agent.DecisionMaker = model == "rule-based"
-                ? new RuleBasedDecisionMaker()
-                : new OllamaDecisionMaker(model, baseUrl);
+            // PROTOTYPE: rule-based, Ollama (native /api/generate), or LM Studio (OpenAI /v1).
+            // Route by base URL: an OpenAI-style "/v1" endpoint → LM Studio; otherwise Ollama.
+            agent.DecisionMaker = model switch
+            {
+                "rule-based" => new RuleBasedDecisionMaker(),
+                _ when baseUrl.Contains("/v1") || baseUrl.Contains(":1234")
+                             => new LmStudioDecisionMaker(model, baseUrl),
+                _            => new OllamaDecisionMaker(model, baseUrl)
+            };
 
             return true;
         }
@@ -244,7 +255,7 @@ public class SimulationService
             try
             {
                 var result = await s.Agent.DecisionMaker.ChooseAsync(
-                    s.DrivesSnapshot, ActionCatalog.All, s.Persona, s.NavState, s.Targets);
+                    s.DrivesSnapshot, LlmActionMenu, s.Persona, s.NavState, s.Targets);
                 return (s.Agent, Result: result, Error: (string?)null);
             }
             catch (Exception ex)
