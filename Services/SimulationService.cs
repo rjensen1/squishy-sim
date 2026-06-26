@@ -190,7 +190,7 @@ public class SimulationService
         DateTimeOffset now;
         HashSet<string> hadInteractionLastTick;
         HashSet<string> idleAtTickStart;
-        List<(Agent Agent, BodyState DrivesSnapshot, string? Persona, string NavState)> snapshots;
+        List<(Agent Agent, BodyState DrivesSnapshot, string? Persona, string NavState, List<string> Targets)> snapshots;
 
         lock (_lock)
         {
@@ -233,7 +233,8 @@ public class SimulationService
                     a,
                     CoherenceDegradationSystem.ApplyToSnapshot(a.Drives.Snapshot()),
                     CognitiveDriftSystem.BuildDriftedPersona(a.Persona, a.PersonaDriftFactor),
-                    a.NavState.ToString()))
+                    a.NavState.ToString(),
+                    _agents.Where(o => o.Id != a.Id).Select(o => o.Name).ToList()))
                 .ToList();
         }
 
@@ -242,13 +243,13 @@ public class SimulationService
         {
             try
             {
-                var (action, reason) = await s.Agent.DecisionMaker.ChooseAsync(
-                    s.DrivesSnapshot, ActionCatalog.All, s.Persona, s.NavState);
-                return (s.Agent, Action: action, Reason: reason, Error: (string?)null);
+                var result = await s.Agent.DecisionMaker.ChooseAsync(
+                    s.DrivesSnapshot, ActionCatalog.All, s.Persona, s.NavState, s.Targets);
+                return (s.Agent, Result: result, Error: (string?)null);
             }
             catch (Exception ex)
             {
-                return (s.Agent, Action: (GameAction?)null, Reason: (string?)null, Error: ex.Message);
+                return (s.Agent, Result: (DecisionResult?)null, Error: ex.Message);
             }
         }));
 
@@ -266,9 +267,15 @@ public class SimulationService
                         continue;
                     }
 
-                    d.Agent.CurrentAction = d.Action!.Id;
-                    d.Agent.CurrentReason = d.Reason!;
-                    UpdateNavigation(d.Agent, d.Action, idleAtTickStart);
+                    var result = d.Result!;
+                    d.Agent.CurrentAction = result.Action.Id;
+                    d.Agent.CurrentReason = result.Reason;
+
+                    if (result.Action.Id == "talk")
+                        ResolveTalk(d.Agent, result, now);   // directed utterance — no navigation
+                    else
+                        UpdateNavigation(d.Agent, result.Action, idleAtTickStart);
+
                     d.Agent.Thoughts.Add(new ThoughtEntry(now,
                         $"{d.Agent.CurrentAction}: {d.Agent.CurrentReason} | nav={d.Agent.NavState} | drift={d.Agent.PersonaDriftFactor:0.00}"));
                     if (d.Agent.Thoughts.Count > 200) d.Agent.Thoughts.RemoveAt(0);
@@ -335,6 +342,41 @@ public class SimulationService
                                  (float)(_rng.NextDouble() * WorldSize));
             agent.NavState    = NavigationState.Committed;
         }
+    }
+
+    /// <summary>
+    /// Handles a "talk" decision: the speaker says its LLM-authored line (<c>result.Content</c>)
+    /// to the named target, recorded as a ConversationMessage. Both parties get social credit
+    /// via the same flag socialize uses. Proximity-gating is a future refinement — for now a
+    /// talk lands immediately on the named agent regardless of distance.
+    /// </summary>
+    private void ResolveTalk(Agent speaker, DecisionResult result, DateTimeOffset now)
+    {
+        var target = _agents.FirstOrDefault(
+            a => a.Id != speaker.Id &&
+                 string.Equals(a.Name, result.Target, StringComparison.OrdinalIgnoreCase));
+
+        if (target == null)
+        {
+            speaker.CurrentReason = $"{result.Reason} (no one named {result.Target})";
+            return;
+        }
+
+        var line = string.IsNullOrWhiteSpace(result.Content)
+            ? $"({speaker.Name} tries to say something)"
+            : result.Content!;
+
+        var msg = new ConversationMessage(now, speaker.Id, target.Id, line);
+        _allConversations.Add(msg);
+        speaker.Messages.Add(msg);
+        target.Messages.Add(msg);
+        if (_allConversations.Count > 500) _allConversations.RemoveAt(0);
+
+        // Directed talk satisfies the social drive for both, like socialize.
+        speaker.HadSocialInteractionLastTick = true;
+        target.HadSocialInteractionLastTick  = true;
+
+        speaker.CurrentReason = $"to {target.Name}: \"{line}\"";
     }
 
     private void BeginOrContinueSeeking(Agent agent, HashSet<string> idleAtTickStart)

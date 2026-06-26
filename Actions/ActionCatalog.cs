@@ -46,6 +46,16 @@ public static class ActionCatalog
             Description = "spend time with another agent",
             // SocialDelta is applied by SimulationService (only if a partner is found)
             Effect = new ActionEffect(HungerDelta: 0.00f, ThirstDelta: 0.00f, FatigueDelta: 0.00f, BladderDelta: 0.00f, MoodDelta: 0.00f, SocialDelta: -0.25f)
+        },
+        new GameAction
+        {
+            Id = "talk",
+            Description = "say something specific to a named agent",
+            RequiresTarget  = true,   // who you address
+            RequiresContent = true,   // the exact words you say
+            // Like socialize, the social payoff is applied by SimulationService when the
+            // utterance actually lands on a partner; the Effect here is descriptive.
+            Effect = new ActionEffect(HungerDelta: 0.00f, ThirstDelta: 0.00f, FatigueDelta: 0.00f, BladderDelta: 0.00f, MoodDelta: +0.05f, SocialDelta: -0.25f)
         }
     };
 

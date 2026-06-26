@@ -9,7 +9,8 @@ public static class PromptBuilder
         BodyState state,
         IReadOnlyList<GameAction> actions,
         string? persona = null,
-        string? navState = null)
+        string? navState = null,
+        IReadOnlyList<string>? targets = null)
     {
         var sb = new System.Text.StringBuilder();
 
@@ -42,9 +43,22 @@ public static class PromptBuilder
         foreach (var action in actions)
             sb.AppendLine($"  {action.Id}: {action.EffectSummary}");
 
+        // List who can be addressed, but only if a parameterized action is on the menu.
+        var hasTargetedAction = actions.Any(a => a.RequiresTarget);
+        if (hasTargetedAction && targets is { Count: > 0 })
+        {
+            sb.AppendLine();
+            sb.AppendLine($"People you can talk to (use one of these exact names as \"target\"): {string.Join(", ", targets)}");
+        }
+
         sb.AppendLine();
         sb.AppendLine("Respond with ONLY a single line of valid JSON. No markdown, no explanation:");
-        sb.Append("{\"action\": \"<action_id>\", \"reason\": \"<one short sentence>\"}");
+        sb.AppendLine("{\"action\": \"<action_id>\", \"reason\": \"<one short sentence>\"}");
+        if (hasTargetedAction)
+        {
+            sb.Append("For \"talk\", also include who you address and the exact words you say out loud: ");
+            sb.Append("{\"action\": \"talk\", \"target\": \"<name>\", \"content\": \"<what you say>\", \"reason\": \"<why>\"}");
+        }
 
         return sb.ToString();
     }

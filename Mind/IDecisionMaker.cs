@@ -7,9 +7,10 @@ public interface IDecisionMaker
 {
     string DisplayName { get; }
 
-    Task<(GameAction action, string reason)> ChooseAsync(
+    Task<DecisionResult> ChooseAsync(
         BodyState state,
         IReadOnlyList<GameAction> actions,
         string? persona = null,
-        string? navState = null);
+        string? navState = null,
+        IReadOnlyList<string>? targets = null);  // names this agent may aim a "talk" at
 }

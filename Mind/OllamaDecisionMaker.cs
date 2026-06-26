@@ -25,12 +25,33 @@ public class OllamaDecisionMaker : IDecisionMaker
         _http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
     }
 
-    public async Task<(GameAction action, string reason)> ChooseAsync(
+    public async Task<DecisionResult> ChooseAsync(
         BodyState state, IReadOnlyList<GameAction> actions,
-        string? persona = null, string? navState = null)
+        string? persona = null, string? navState = null,
+        IReadOnlyList<string>? targets = null)
     {
-        var prompt = PromptBuilder.Build(state, actions, persona, navState);
+        var prompt = PromptBuilder.Build(state, actions, persona, navState, targets);
 
+        var raw = await GenerateAsync(prompt);
+        if (TryParseDecision(raw, actions, targets, out var decision, out var failReason))
+            return decision!;
+
+        // Repair loop: one pointed correction — name exactly what was wrong, then re-ask.
+        // Small models fix a named mistake; they'll often repeat a vague one.
+        var correction = prompt
+            + $"\n\nYour previous reply was rejected: {failReason}"
+            + " Reply with ONLY the JSON object described above and nothing else.";
+        raw = await GenerateAsync(correction);
+        if (TryParseDecision(raw, actions, targets, out decision, out failReason))
+            return decision!;
+
+        // Floor: never block the sim. Fall back to the deterministic urgency pick.
+        return new DecisionResult(PickByUrgency(actions), $"parse failed after retry — {failReason}");
+    }
+
+    /// <summary>POSTs a prompt to Ollama and returns the raw model text.</summary>
+    private async Task<string> GenerateAsync(string prompt)
+    {
         var requestJson = JsonSerializer.Serialize(new
         {
             model = _model,
@@ -46,43 +67,84 @@ public class OllamaDecisionMaker : IDecisionMaker
         response.EnsureSuccessStatusCode();
 
         var responseText = await response.Content.ReadAsStringAsync();
-        var doc = JsonDocument.Parse(responseText);
-        var llmOutput = doc.RootElement.GetProperty("response").GetString() ?? "";
-
-        return ParseActionFromLlmOutput(llmOutput, actions);
+        using var doc = JsonDocument.Parse(responseText);
+        return doc.RootElement.GetProperty("response").GetString() ?? "";
     }
 
-    private static (GameAction action, string reason) ParseActionFromLlmOutput(
-        string text, IReadOnlyList<GameAction> actions)
+    /// <summary>
+    /// Extracts a <see cref="DecisionResult"/> from raw LLM text. Returns false with a
+    /// human-readable <paramref name="failReason"/> when there's no valid JSON action,
+    /// an unknown action, or a parameterized action missing/invalid target or content.
+    /// Public + static so it can be unit-tested without a running Ollama.
+    /// </summary>
+    public static bool TryParseDecision(
+        string text,
+        IReadOnlyList<GameAction> actions,
+        IReadOnlyList<string>? targets,
+        out DecisionResult? decision,
+        out string failReason)
     {
-        try
-        {
-            // LLMs sometimes wrap JSON in markdown — extract the first {...} block
-            var start = text.IndexOf('{');
-            var end = text.LastIndexOf('}');
+        decision = null;
 
-            if (start >= 0 && end > start)
+        // LLMs sometimes wrap JSON in prose/markdown — extract the first {...} block.
+        var start = text.IndexOf('{');
+        var end = text.LastIndexOf('}');
+        if (start < 0 || end <= start)
+        {
+            failReason = "no JSON object found in the reply.";
+            return false;
+        }
+
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(text[start..(end + 1)]); }
+        catch { failReason = "the JSON did not parse."; return false; }
+
+        using (doc)
+        {
+            var root = doc.RootElement;
+            var actionId = root.TryGetProperty("action", out var a) ? a.GetString() ?? "" : "";
+            var action = ActionCatalog.FindById(actionId);
+            if (action == null)
             {
-                var json = text[start..(end + 1)];
-                var doc = JsonDocument.Parse(json);
-
-                var actionId = doc.RootElement.GetProperty("action").GetString() ?? "";
-                var reason = doc.RootElement.TryGetProperty("reason", out var r)
-                    ? r.GetString() ?? ""
-                    : "";
-
-                var action = ActionCatalog.FindById(actionId);
-                if (action != null)
-                    return (action, reason);
+                failReason = $"\"{actionId}\" is not a valid action.";
+                return false;
             }
-        }
-        catch
-        {
-            // Fall through to urgency-based fallback
-        }
 
-        // Fallback: most urgent drive wins
-        return (PickByUrgency(actions), $"parse failed — raw: {text[..Math.Min(80, text.Length)]}");
+            var reason  = root.TryGetProperty("reason",  out var r) ? r.GetString() ?? "" : "";
+            var target  = root.TryGetProperty("target",  out var t) ? t.GetString() : null;
+            var content = root.TryGetProperty("content", out var c) ? c.GetString() : null;
+
+            if (action.RequiresTarget)
+            {
+                if (string.IsNullOrWhiteSpace(target))
+                {
+                    failReason = $"action \"{action.Id}\" needs a \"target\".";
+                    return false;
+                }
+                // Validate against the legal set (case-insensitive) and canonicalize the casing.
+                if (targets is { Count: > 0 })
+                {
+                    var match = targets.FirstOrDefault(
+                        x => string.Equals(x, target, StringComparison.OrdinalIgnoreCase));
+                    if (match == null)
+                    {
+                        failReason = $"\"{target}\" is not someone you can talk to.";
+                        return false;
+                    }
+                    target = match;
+                }
+            }
+
+            if (action.RequiresContent && string.IsNullOrWhiteSpace(content))
+            {
+                failReason = $"action \"{action.Id}\" needs \"content\" — the words you say.";
+                return false;
+            }
+
+            decision = new DecisionResult(action, reason, target, content);
+            failReason = "";
+            return true;
+        }
     }
 
     private static GameAction PickByUrgency(IReadOnlyList<GameAction> actions) =>

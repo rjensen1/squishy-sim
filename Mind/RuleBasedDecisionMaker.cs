@@ -17,9 +17,10 @@ public class RuleBasedDecisionMaker : IDecisionMaker
     private const float ContextModifier       = 0.20f;
     private const float SocialTriggerThreshold = 0.65f;
 
-    public Task<(GameAction action, string reason)> ChooseAsync(
+    public Task<DecisionResult> ChooseAsync(
         BodyState state, IReadOnlyList<GameAction> actions,
-        string? persona = null, string? navState = null)
+        string? persona = null, string? navState = null,
+        IReadOnlyList<string>? targets = null)
     {
         float mod = ComputeModifier(state);
 
@@ -63,9 +64,9 @@ public class RuleBasedDecisionMaker : IDecisionMaker
         return state.Social < SocialTriggerThreshold ? ContextModifier : 0f;
     }
 
-    private static Task<(GameAction action, string reason)> Done(string id, string reason)
+    private static Task<DecisionResult> Done(string id, string reason)
     {
         var action = ActionCatalog.FindById(id) ?? ActionCatalog.All[0];
-        return Task.FromResult((action, reason));
+        return Task.FromResult(new DecisionResult(action, reason));
     }
 }

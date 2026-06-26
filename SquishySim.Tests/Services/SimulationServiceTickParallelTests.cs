@@ -24,13 +24,14 @@ public class SimulationServiceTickParallelTests
         public int CallCount => _callCount;
         public string DisplayName => "counting-fake";
 
-        public Task<(GameAction action, string reason)> ChooseAsync(
+        public Task<DecisionResult> ChooseAsync(
             BodyState state, IReadOnlyList<GameAction> actions,
-            string? persona = null, string? navState = null)
+            string? persona = null, string? navState = null,
+            IReadOnlyList<string>? targets = null)
         {
             Interlocked.Increment(ref _callCount);
             var action = ActionCatalog.FindById("wander") ?? actions[0];
-            return Task.FromResult((action, "fake"));
+            return Task.FromResult(new DecisionResult(action, "fake"));
         }
     }
 
@@ -43,13 +44,14 @@ public class SimulationServiceTickParallelTests
         public BodyState? CapturedState { get; private set; }
         public string DisplayName => "snapshot-capturing-fake";
 
-        public Task<(GameAction action, string reason)> ChooseAsync(
+        public Task<DecisionResult> ChooseAsync(
             BodyState state, IReadOnlyList<GameAction> actions,
-            string? persona = null, string? navState = null)
+            string? persona = null, string? navState = null,
+            IReadOnlyList<string>? targets = null)
         {
             CapturedState = state;
             var action = ActionCatalog.FindById("wander") ?? actions[0];
-            return Task.FromResult((action, "fake"));
+            return Task.FromResult(new DecisionResult(action, "fake"));
         }
     }
 

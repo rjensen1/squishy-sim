@@ -15,6 +15,12 @@ public class GameAction
     public string Description { get; init; } = "";
     public ActionEffect Effect { get; init; } = new(0, 0, 0, 0, 0);
 
+    /// <summary>Action needs a Target — e.g. "talk" needs someone to talk to.</summary>
+    public bool RequiresTarget  { get; init; } = false;
+
+    /// <summary>Action needs spoken Content — e.g. "talk" needs the words said out loud.</summary>
+    public bool RequiresContent { get; init; } = false;
+
     /// <summary>Human-readable summary of what this action does to drives.</summary>
     public string EffectSummary
     {
